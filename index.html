@@ -2,147 +2,36 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SECURE TECH - Central de Monitoramento Master</title>
+    <title>SECURE TECH - Central Master</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        /* Identidade Visual Secure Tech: Navy Blue e Lead Gray */
-        :root { 
-            --navy: #020617; 
-            --lead: #1e293b; 
-            --accent: #3b82f6; 
-            --success: #10b981; 
-            --danger: #ef4444;
-            --input-bg: #0f172a; 
-        }
-
-        body { 
-            margin: 0; 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background: var(--navy); 
-            color: #f8fafc; 
-            display: flex; 
-            height: 100vh; 
-            overflow: hidden; 
-        }
-        
-        /* Painel Lateral Profissional */
-        #sidebar { 
-            width: 380px; 
-            background: var(--lead); 
-            padding: 25px; 
-            border-right: 3px solid var(--accent); 
-            display: flex; 
-            flex-direction: column; 
-            gap: 20px; 
-            box-shadow: 10px 0 20px rgba(0,0,0,0.5); 
-            z-index: 100; 
-            overflow-y: auto;
-        }
-
-        .brand-area { 
-            text-align: center; 
-            border-bottom: 1px solid #334155; 
-            padding-bottom: 20px; 
-        }
-
-        .brand-area h1 { 
-            margin: 0; 
-            font-size: 22px; 
-            color: var(--accent); 
-            letter-spacing: 2px; 
-            text-transform: uppercase;
-        }
-
-        .brand-area small { color: #94a3b8; font-weight: bold; }
-        
-        /* Estilização de Campos */
-        .field-group { display: flex; flex-direction: column; gap: 8px; }
-        
-        label { 
-            font-size: 11px; 
-            color: #94a3b8; 
-            font-weight: bold; 
-            text-transform: uppercase; 
-            margin-left: 2px;
-        }
-
-        input { 
-            background: var(--input-bg); 
-            border: 1px solid #334155; 
-            color: var(--success); 
-            padding: 14px; 
-            border-radius: 6px; 
-            outline: none; 
-            font-weight: 700; 
-            font-size: 14px;
-            transition: 0.3s;
-        }
-
-        input:focus { border-color: var(--accent); box-shadow: 0 0 10px rgba(59, 130, 246, 0.3); }
-
-        button { 
-            background: var(--accent); 
-            color: white; 
-            border: none; 
-            padding: 16px; 
-            border-radius: 6px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            transition: 0.3s; 
-            text-transform: uppercase; 
-            font-size: 13px;
-            letter-spacing: 1px;
-        }
-
-        button:hover { background: #2563eb; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
-        
-        /* Área do Mapa e Console */
-        #map { flex: 1; z-index: 1; }
-
-        .terminal { 
-            background: #000; 
-            padding: 15px; 
-            font-family: 'Courier New', monospace; 
-            font-size: 11px; 
-            color: #64748b; 
-            border-radius: 6px; 
-            height: 150px; 
-            overflow-y: auto; 
-            border: 1px solid #1e293b; 
-            margin-top: 10px;
-        }
-
-        .token-display { color: #f59e0b !important; background: #1e1b4b !important; border: 1px dashed #f59e0b !important; }
+        :root { --navy: #020617; --lead: #1e293b; --accent: #3b82f6; --success: #10b981; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--navy); color: white; display: flex; height: 100vh; }
+        #sidebar { width: 380px; background: var(--lead); padding: 25px; border-right: 2px solid var(--accent); display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
+        .brand { text-align: center; border-bottom: 1px solid #334155; padding-bottom: 15px; margin-bottom: 10px; }
+        .brand h1 { font-size: 20px; color: var(--accent); margin: 0; }
+        input { background: #0f172a; border: 1px solid #334155; color: var(--success); padding: 12px; border-radius: 4px; width: 100%; box-sizing: border-box; font-weight: bold; }
+        button { background: var(--accent); color: white; border: none; padding: 14px; border-radius: 4px; font-weight: bold; cursor: pointer; width: 100%; }
+        .item-cliente { display: flex; justify-content: space-between; background: #0f172a; padding: 10px; border-radius: 4px; margin-bottom: 5px; font-size: 12px; border: 1px solid #1e293b; }
+        #map { flex: 1; }
     </style>
 </head>
 <body>
 
 <div id="sidebar">
-    <div class="brand-area">
-        <h1>SECURE TECH</h1>
-        <small>SISTEMA DE GESTÃO CONCIERGE</small>
-    </div>
-
-    <div class="field-group">
-        <label>Nome do Condomínio / Cliente</label>
-        <input type="text" id="nome-cliente" placeholder="Digite o nome oficial" oninput="gerarTokenAutomatico()">
-    </div>
-
-    <div class="field-group">
-        <label>Chave Gerada (Token de Acesso)</label>
-        <input type="text" id="token-cliente" class="token-display" readonly placeholder="Gerando automaticamente...">
-    </div>
-
-    <button onclick="salvarNoBanco()">💾 Gravar Cliente na Nuvem</button>
-
-    <div class="field-group">
-        <label>Logs do Servidor (Supabase)</label>
-        <div class="terminal" id="console-output">> Aguardando instrução master...</div>
-    </div>
+    <div class="brand"><h1>SECURE TECH</h1><small>MONITORAMENTO MASTER</small></div>
     
-    <div style="text-align: center; margin-top: auto;">
-        <small style="color: #475569;">Secure Tech Solutions &copy; 2026</small>
+    <label style="font-size:11px; color:#94a3b8;">NOME DO CONDOMÍNIO</label>
+    <input type="text" id="nome-condo" placeholder="Ex: Residencial Alvorada" oninput="gerarToken()">
+    
+    <label style="font-size:11px; color:#94a3b8;">TOKEN DE ACESSO</label>
+    <input type="text" id="token-condo" readonly style="color:#f59e0b;">
+    
+    <button onclick="salvarCliente()">💾 GRAVAR NO BANCO</button>
+
+    <div style="margin-top: 20px;">
+        <label style="font-size:11px; color:#94a3b8;">CLIENTES ATIVOS</label>
+        <div id="lista-clientes" style="margin-top:10px;"></div>
     </div>
 </div>
 
@@ -152,69 +41,57 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-// Credenciais Oficiais do seu projeto Secure Tech
-const SUPABASE_URL = 'https://onyksqqaeeeznjqzbqry.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_Qz9ETAer-x34QjYYssuzDw_kDKOiG8-uJ9_vC_S8v7E';
+const URL_SB = 'https://onyksqqaeeeznjqzbqry.supabase.co';
+const KEY_SB = 'sb_publishable_Qz9ETAer-x34QjYYssuzDw_kDKOiG8-uJ9_vC_S8v7E';
+const _supabase = supabase.createClient(URL_SB, KEY_SB);
 
-// Inicialização da conexão
-const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+window.onload = carregarLista;
 
-function log(mensagem) {
-    const out = document.getElementById('console-output');
-    out.innerHTML += `<br>> ${mensagem}`;
-    out.scrollTop = out.scrollHeight;
-}
-
-function gerarTokenAutomatico() {
-    const nome = document.getElementById('nome-cliente').value.trim();
-    if(nome.length >= 3) {
-        const prefixo = nome.substring(0,3).toUpperCase();
-        const rand = Math.floor(1000 + Math.random() * 9000);
-        document.getElementById('token-cliente').value = `${prefixo}-${rand}`;
+function gerarToken() {
+    const n = document.getElementById('nome-condo').value;
+    if(n.length >= 3) {
+        document.getElementById('token-condo').value = n.substring(0,3).toUpperCase() + "-" + Math.floor(1000 + Math.random() * 9000);
     }
 }
 
-async function salvarNoBanco() {
-    const nome = document.getElementById('nome-cliente').value.toUpperCase();
-    const token = document.getElementById('token-cliente').value;
-
-    if(!nome || !token) {
-        alert("Preencha o nome do condomínio antes de gravar.");
-        return;
+async function carregarLista() {
+    const { data, error } = await _supabase.from('condominios').select('*').order('created_at', { ascending: false });
+    const lista = document.getElementById('lista-clientes');
+    lista.innerHTML = "";
+    if (data) {
+        data.forEach(c => {
+            lista.innerHTML += `<div class="item-cliente"><span>${c.nome}<br><small style="color:#f59e0b">${c.token}</small></span><button onclick="deletar(${c.id})" style="width:30px; padding:2px; background:#ef4444;">X</button></div>`;
+        });
     }
+}
 
-    log("Iniciando gravação segura...");
+async function salvarCliente() {
+    const nome = document.getElementById('nome-condo').value.toUpperCase();
+    const token = document.getElementById('token-condo').value;
+    
+    if(!nome) return alert("Digite o nome!");
 
-    const { data, error } = await _supabase
-        .from('condominios')
-        .insert([{ nome, token }])
-        .select();
+    const { error } = await _supabase.from('condominios').insert([{ nome, token }]);
 
     if(error) {
-        log("ERRO TÉCNICO: " + error.message);
-        console.error("Erro Supabase:", error);
-        alert("Falha na sincronização. Verifique o console.");
+        alert("FALHA: " + error.message);
+        console.error(error);
     } else {
-        log("SUCESSO: Cliente sincronizado na base de dados.");
-        alert("✅ " + nome + " cadastrado com sucesso!");
-        
-        // Limpa os campos para o próximo
-        document.getElementById('nome-cliente').value = "";
-        document.getElementById('token-cliente').value = "";
+        alert("✅ CLIENTE GRAVADO!");
+        document.getElementById('nome-condo').value = "";
+        carregarLista();
     }
 }
 
-// Inicialização do Mapa (Focado na região de Jundiaí/Itupeva conforme suas coordenadas)
+async function deletar(id) {
+    if(confirm("Excluir cliente?")) {
+        await _supabase.from('condominios').delete().eq('id', id);
+        carregarLista();
+    }
+}
+
 const map = L.map('map').setView([-23.206558, -47.034927], 15);
-
-L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
-    maxZoom: 20,
-    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-    attribution: 'Secure Tech - Satélite'
-}).addTo(map);
-
-log("Sistema operacional via GitHub Pages.");
+L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', { maxZoom: 20, subdomains: ['mt0','mt1','mt2','mt3'] }).addTo(map);
 </script>
-
 </body>
 </html>
