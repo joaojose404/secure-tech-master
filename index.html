@@ -2,22 +2,27 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>SECURE TECH - Central de Comando Master</title>
+    <title>SECURE TECH - Central Master</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root { --navy: #020617; --lead: #1e293b; --accent: #3b82f6; --success: #10b981; --input-bg: #0f172a; }
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--navy); color: #f8fafc; display: flex; height: 100vh; overflow: hidden; }
-        #sidebar { width: 400px; background: var(--lead); padding: 25px; border-right: 3px solid var(--accent); display: flex; flex-direction: column; gap: 15px; box-shadow: 10px 0 20px rgba(0,0,0,0.5); z-index: 100; overflow-y: auto; }
-        .brand { text-align: center; border-bottom: 1px solid #334155; padding-bottom: 15px; margin-bottom: 10px; }
+        
+        #sidebar { width: 400px; background: var(--lead); padding: 25px; border-right: 3px solid var(--accent); display: flex; flex-direction: column; gap: 15px; z-index: 100; overflow-y: auto; }
+        .brand { text-align: center; border-bottom: 1px solid #334155; padding-bottom: 15px; }
         .brand h1 { font-size: 22px; color: var(--accent); margin: 0; letter-spacing: 2px; }
+
         .group { display: flex; flex-direction: column; gap: 5px; }
         label { font-size: 11px; color: #94a3b8; font-weight: bold; text-transform: uppercase; }
-        input { background: var(--input-bg); border: 1px solid #334155; color: var(--success); padding: 14px; border-radius: 6px; outline: none; font-weight: bold; }
-        button { background: var(--accent); color: white; border: none; padding: 15px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.3s; text-transform: uppercase; }
+        input { background: var(--input-bg); border: 1px solid #334155; color: var(--success); padding: 14px; border-radius: 6px; outline: none; font-weight: bold; width: 100%; box-sizing: border-box; }
+        
+        button { background: var(--accent); color: white; border: none; padding: 15px; border-radius: 6px; font-weight: bold; cursor: pointer; text-transform: uppercase; width: 100%; transition: 0.3s; }
         button:hover { background: #2563eb; transform: translateY(-2px); }
-        .client-list { background: #0f172a; border-radius: 6px; padding: 10px; border: 1px solid #1e293b; max-height: 250px; overflow-y: auto; }
+
+        .client-list { background: #0f172a; border-radius: 6px; padding: 10px; border: 1px solid #1e293b; max-height: 250px; overflow-y: auto; margin-top: 10px; }
         .client-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #1e293b; font-size: 13px; }
-        .btn-del { background: #ef4444; padding: 5px 10px; font-size: 10px; width: auto; }
+        .btn-del { background: #ef4444; padding: 5px 10px; font-size: 10px; width: auto; margin-top: 0; }
+
         .terminal { background: #000; padding: 10px; font-family: monospace; font-size: 11px; color: #64748b; border-radius: 6px; height: 100px; overflow-y: auto; border: 1px solid #1e293b; }
         #map { flex: 1; }
     </style>
@@ -25,36 +30,40 @@
 <body>
 
 <div id="sidebar">
-    <div class="brand">
-        <h1>SECURE TECH</h1>
-        <small>MONITORAMENTO & CONCIERGE</small>
-    </div>
+    <div class="brand"><h1>SECURE TECH</h1><small>OPERACIONAL MASTER</small></div>
+    
     <div class="group">
         <label>Nome do Condomínio</label>
         <input type="text" id="nome-condo" placeholder="Ex: Residencial Prime" oninput="gerarToken()">
     </div>
+
     <div class="group">
         <label>Token de Acesso</label>
         <input type="text" id="token-condo" readonly style="color: #f59e0b;">
     </div>
-    <button onclick="salvarNoBanco()">💾 Gravar Cliente na Nuvem</button>
+
+    <button onclick="salvarNoBanco()">💾 Gravar na Nuvem</button>
+
     <div class="group">
-        <label>Clientes Cadastrados</label>
+        <label>Clientes Ativos</label>
         <div id="lista-clientes" class="client-list"></div>
     </div>
+
     <div class="group">
         <label>Console de Operações</label>
-        <div id="console" class="terminal">> Pronto para sincronizar...</div>
+        <div id="console" class="terminal">> Sistema iniciado...</div>
     </div>
 </div>
+
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-// USANDO A URL DE REST DIRETA DO SEU PROJETO
-const URL_API = 'https://onyksqqaeeeznjqzbqry.supabase.co/rest/v1';
-const KEY_API = 'sb_publishable_Qz9ETAer-x34QjYYssuzDw_kDKOiG8-uJ9_vC_S8v7E';
+// URL corrigida conforme o seu link do dashboard
+const PROJ_ID = 'onxksqqaeegznjqzbqry'; 
+const URL_BASE = `https://${PROJ_ID}.supabase.co/rest/v1/condominios`;
+const KEY = 'sb_publishable_Qz9ETAer-x34QjYYssuzDw_kDKOiG8-uJ9_vC_S8v7E';
 
 function log(msg) {
     const c = document.getElementById('console');
@@ -62,72 +71,75 @@ function log(msg) {
     c.scrollTop = c.scrollHeight;
 }
 
-async function apiCall(method, table, body = null, params = "") {
-    const options = {
-        method: method,
-        headers: {
-            'apikey': KEY_API,
-            'Authorization': `Bearer ${KEY_API}`,
-            'Content-Type': 'application/json'
-        }
-    };
-    if (body) {
-        options.body = JSON.stringify(body);
-        options.headers['Prefer'] = 'return=representation';
-    }
-    
-    const response = await fetch(`${URL_API}/${table}${params}`, options);
-    if (!response.ok) throw new Error(await response.text());
-    return response.json();
-}
-
 async function listar() {
     try {
-        const data = await apiCall('GET', 'condominios', null, '?select=*&order=created_at.desc');
+        const res = await fetch(`${URL_BASE}?select=*&order=created_at.desc`, {
+            method: 'GET',
+            headers: { 'apikey': KEY, 'Authorization': `Bearer ${KEY}` }
+        });
+        if(!res.ok) throw new Error();
+        const data = await res.json();
         const container = document.getElementById('lista-clientes');
         container.innerHTML = "";
         data.forEach(c => {
-            container.innerHTML += `<div class="client-item"><span><b>${c.nome}</b><br><small style="color:#f59e0b">${c.token}</small></span><button class="btn-del" onclick="remover(${c.id})">REMOVER</button></div>`;
+            container.innerHTML += `
+                <div class="client-item">
+                    <span><b>${c.nome}</b><br><small style="color:#f59e0b">${c.token}</small></span>
+                    <button class="btn-del" onclick="remover(${c.id})">X</button>
+                </div>`;
         });
-        log("Lista atualizada.");
-    } catch (e) { log("Erro ao listar: Banco bloqueado ou vazio."); }
+        log("Sincronização concluída.");
+    } catch (e) { log("Erro: Verifique a tabela no Supabase."); }
 }
 
 async function salvarNoBanco() {
     const nome = document.getElementById('nome-condo').value.toUpperCase();
     const token = document.getElementById('token-condo').value;
-    if(!nome) return alert("Preencha o nome!");
+    if(!nome) return;
 
     log("Enviando dados...");
     try {
-        await apiCall('POST', 'condominios', { nome, token });
-        log("SUCESSO: Cliente registrado.");
-        document.getElementById('nome-condo').value = "";
-        listar();
-    } catch (e) { 
-        log("FALHA: " + e.message);
-        alert("Erro de Sincronização. Verifique se o SQL foi rodado.");
-    }
+        const res = await fetch(URL_BASE, {
+            method: 'POST',
+            headers: { 
+                'apikey': KEY, 
+                'Authorization': `Bearer ${KEY}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({ nome, token })
+        });
+
+        if(res.ok) {
+            log("Gravado com sucesso!");
+            document.getElementById('nome-condo').value = "";
+            listar();
+        } else {
+            log("Erro ao gravar. Verifique o banco.");
+        }
+    } catch (e) { log("Falha de conexão."); }
 }
 
 async function remover(id) {
-    if(confirm("Deseja apagar?")) {
-        try {
-            await apiCall('DELETE', 'condominios', null, `?id=eq.${id}`);
-            listar();
-        } catch (e) { alert("Erro ao deletar."); }
+    if(confirm("Remover cliente?")) {
+        await fetch(`${URL_BASE}?id=eq.${id}`, {
+            method: 'DELETE',
+            headers: { 'apikey': KEY, 'Authorization': `Bearer ${KEY}` }
+        });
+        listar();
     }
 }
 
 function gerarToken() {
     const n = document.getElementById('nome-condo').value;
-    if(n.length >= 3) document.getElementById('token-condo').value = n.substring(0,3).toUpperCase() + "-" + Math.floor(Math.random() * 9000 + 1000);
+    if(n.length >= 3) {
+        document.getElementById('token-condo').value = n.substring(0,3).toUpperCase() + "-" + Math.floor(Math.random() * 9000 + 1000);
+    }
 }
 
 const map = L.map('map').setView([-23.206558, -47.034927], 16);
 L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', { maxZoom: 20, subdomains: ['mt0','mt1','mt2','mt3'] }).addTo(map);
 
-// Inicia listagem
 listar();
 </script>
 </body>
