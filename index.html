@@ -3,176 +3,284 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SECURE TECH - Central de Comando Master</title>
+    <title>SECURE TECH - Sistema Integrado</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        :root { --navy: #020617; --lead: #1e293b; --accent: #3b82f6; --success: #10b981; --input-bg: #0f172a; }
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--navy); color: #f8fafc; display: flex; height: 100vh; overflow: hidden; }
+        :root { --navy: #020617; --lead: #1e293b; --accent: #3b82f6; --success: #10b981; --warning: #f59e0b; --danger: #ef4444; --border: #334155; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--navy); color: #f8fafc; height: 100vh; display: flex; overflow: hidden; }
         
-        #sidebar { width: 400px; background: var(--lead); padding: 25px; border-right: 3px solid var(--accent); display: flex; flex-direction: column; gap: 15px; box-shadow: 10px 0 20px rgba(0,0,0,0.5); z-index: 100; overflow-y: auto; }
-        .brand { text-align: center; border-bottom: 1px solid #334155; padding-bottom: 15px; margin-bottom: 10px; }
-        .brand h1 { font-size: 22px; color: var(--accent); margin: 0; letter-spacing: 2px; text-transform: uppercase; }
+        /* LOGIN */
+        #login-screen { position: fixed; inset: 0; background: var(--navy); z-index: 10000; display: flex; align-items: center; justify-content: center; }
+        .login-box { background: var(--lead); padding: 30px; border-radius: 8px; border: 1px solid var(--accent); width: 320px; text-align: center; }
         
-        .group { display: flex; flex-direction: column; gap: 5px; }
-        label { font-size: 11px; color: #94a3b8; font-weight: bold; text-transform: uppercase; }
-        input { background: var(--input-bg); border: 1px solid #334155; color: var(--success); padding: 14px; border-radius: 6px; outline: none; font-weight: bold; width: 100%; box-sizing: border-box; }
-        
-        button { background: var(--accent); color: white; border: none; padding: 15px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.3s; text-transform: uppercase; width: 100%; }
-        button:hover { background: #2563eb; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        /* LAYOUT PRINCIPAL */
+        #app-container { display: none; flex: 1; height: 100vh; width: 100%; }
+        #sidebar { width: 400px; background: var(--lead); padding: 15px; border-right: 2px solid var(--accent); overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+        #map { flex: 1; background: #000; height: 100vh; }
 
-        .client-list { background: #0f172a; border-radius: 6px; padding: 5px; border: 1px solid #1e293b; max-height: 250px; overflow-y: auto; margin-top: 10px; }
-        .client-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #1e293b; font-size: 13px; transition: 0.2s; }
-        .client-item:hover { background: #1e293b; }
-        .btn-del { background: #ef4444; padding: 5px 10px; font-size: 10px; width: auto; border-radius: 4px; }
+        .card { background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border); padding: 12px; border-radius: 6px; }
+        .section-header { font-size: 10px; color: var(--accent); font-weight: bold; text-transform: uppercase; margin-bottom: 8px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+        
+        input, select { background: #0f172a; border: 1px solid var(--border); color: var(--success); padding: 10px; border-radius: 4px; width: 100%; box-sizing: border-box; margin-bottom: 8px; font-size: 12px; outline: none; }
+        
+        .btn { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; width: 100%; text-transform: uppercase; font-size: 11px; transition: 0.2s; }
+        .btn:hover { filter: brightness(1.2); }
+        .btn-del { background: var(--danger); width: auto; padding: 4px 8px; font-size: 9px; margin-left: 5px; }
+        .hidden { display: none !important; }
 
-        .terminal { background: #000; padding: 12px; font-family: 'Courier New', monospace; font-size: 11px; color: #64748b; border-radius: 6px; height: 100px; overflow-y: auto; border: 1px solid #1e293b; }
-        #map { flex: 1; z-index: 1; }
+        .item-lista { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid var(--border); font-size: 11px; }
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .stat-box { background: #0f172a; padding: 10px; border-radius: 4px; border: 1px solid var(--border); text-align: center; }
+        .stat-box div { font-size: 18px; font-weight: bold; color: var(--success); }
     </style>
 </head>
 <body>
 
-<div id="sidebar">
-    <div class="brand">
-        <h1>SECURE TECH</h1>
-        <small>OPERACIONAL & CONCIERGE</small>
-    </div>
-
-    <div class="group">
-        <label>Nome do Condomínio</label>
-        <input type="text" id="nome-condo" placeholder="Ex: Residencial Alvorada" oninput="gerarToken()">
-    </div>
-
-    <div class="group">
-        <label>Token de Acesso</label>
-        <input type="text" id="token-condo" readonly style="color: #f59e0b;" placeholder="Aguardando nome...">
-    </div>
-
-    <button onclick="salvarNoBanco()">💾 Registrar na Nuvem</button>
-
-    <div class="group">
-        <label>Clientes Sincronizados</label>
-        <div id="lista-clientes" class="client-list"></div>
-    </div>
-
-    <div class="group">
-        <label>Console de Conexão</label>
-        <div id="console" class="terminal">> Autenticando com chave JWT...</div>
+<div id="login-screen">
+    <div class="login-box">
+        <h2 style="color:var(--accent); margin:0;">SECURE TECH</h2>
+        <input type="text" id="auth_user" placeholder="LOGIN" style="margin-top:15px;">
+        <input type="password" id="auth_pass" placeholder="SENHA">
+        <button class="btn" onclick="fazerLogin()">Acessar Sistema</button>
     </div>
 </div>
 
-<div id="map"></div>
+<div id="app-container">
+    <div id="sidebar">
+        <div style="text-align:center; padding-bottom: 10px;">
+            <h1 style="font-size: 18px; color: var(--accent); margin:0;">SECURE TECH</h1>
+            <small id="display-user" style="color:var(--success)"></small>
+        </div>
+
+        <div id="report-window" class="card hidden">
+            <div class="section-header">Relatório Operacional</div>
+            <div class="stat-grid">
+                <div class="stat-box"><div id="count-visitantes">0</div><label style="font-size:9px;">Visitantes</label></div>
+                <div class="stat-box"><div id="count-rondas" style="color:var(--warning)">0</div><label style="font-size:9px;">Rondas</label></div>
+            </div>
+        </div>
+
+        <div id="admin-tools" class="hidden">
+            <div class="card">
+                <div class="section-header">1. Novo Condomínio</div>
+                <input type="text" id="nome_condo" placeholder="Nome" oninput="gerarToken()">
+                <input type="text" id="cnpj_condo" placeholder="CNPJ">
+                <input type="text" id="token_condo" readonly style="color:var(--warning); background:#1e293b; border-style:dashed;">
+                <button class="btn" onclick="salvarCondo()">🔑 Registrar Master</button>
+            </div>
+            
+            <div class="card">
+                <div class="section-header">2. Condomínios Cadastrados</div>
+                <div id="lista-admin" style="max-height: 150px; overflow-y: auto;"></div>
+            </div>
+
+            <div class="card">
+                <div class="section-header">3. Gerar Acesso Operador</div>
+                <select id="sel_condo_user"></select>
+                <input type="text" id="new_user" placeholder="Login">
+                <input type="password" id="new_pass" placeholder="Senha">
+                <button class="btn" style="background:#ec4899" onclick="salvarUser()">Criar Usuário</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="section-header">Cadastro de Unidade</div>
+            <select id="sel_condo_map"></select>
+            <div style="display:flex; gap:5px;">
+                <input type="text" id="rua" placeholder="Rua / Logradouro" style="flex: 3;">
+                <input type="text" id="numero" placeholder="Nº" style="flex: 1;">
+            </div>
+            <div style="display:flex; gap:5px;">
+                <input type="text" id="qd" placeholder="Quadra (QD)">
+                <input type="text" id="lt" placeholder="Lote (LT)">
+            </div>
+            <button class="btn" style="background:var(--success)" onclick="salvarCasa()">📍 Fixar no Mapa</button>
+        </div>
+
+        <button class="btn" style="background:var(--danger); margin-top:auto" onclick="location.reload()">Sair</button>
+    </div>
+
+    <div id="map"></div>
+</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <script>
-// Configurações Oficiais com sua chave JWT válida
 const PROJ_ID = 'onxksqqaeegznjqzbqry'; 
 const KEY_JWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ueGtzcXFhZWVnem5qcXpicXJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNzYwNTAsImV4cCI6MjA4ODc1MjA1MH0.yFfMpp1Kw-Os-SIERMLt6-Oo6d9wLNPkCRm-Nxn_6Ow'; 
+const URL_BASE = `https://${PROJ_ID}.supabase.co/rest/v1/condominios`;
 
-const URL_REST = `https://${PROJ_ID}.supabase.co/rest/v1/condominios`;
+let map, markers = L.layerGroup(), currentCondo = null, clickCoords = null;
 
-function log(msg) {
-    const c = document.getElementById('console');
-    c.innerHTML += `<br>> ${msg}`;
-    c.scrollTop = c.scrollHeight;
+function gerarToken() {
+    const nome = document.getElementById('nome_condo').value;
+    if(nome.length >= 2) {
+        document.getElementById('token_condo').value = `ST-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+    }
 }
 
-async function listar() {
-    try {
-        const res = await fetch(`${URL_REST}?select=*&order=created_at.desc`, {
-            method: 'GET',
-            headers: { 
-                'apikey': KEY_JWT, 
-                'Authorization': `Bearer ${KEY_JWT}`,
-                'Content-Type': 'application/json'
-            }
+async function fazerLogin() {
+    const user = document.getElementById('auth_user').value;
+    const pass = document.getElementById('auth_pass').value;
+
+    if(user === "admin" && pass === "secure123") {
+        carregarApp('admin', 'ADMINISTRADOR');
+    } else {
+        // Busca o operador no banco (Login no CNPJ, Senha na RUA, Token ACCESS)
+        const res = await fetch(`${URL_BASE}?cnpj=eq.${user}&rua=eq.${pass}&token=eq.ACCESS`, {
+            headers: { 'apikey': KEY_JWT, 'Authorization': `Bearer ${KEY_JWT}` }
         });
-        
-        if(!res.ok) throw new Error("Falha na Resposta");
-        
         const data = await res.json();
-        const container = document.getElementById('lista-clientes');
-        container.innerHTML = "";
-        
-        data.forEach(c => {
-            container.innerHTML += `
-                <div class="client-item">
-                    <span><b>${c.nome}</b><br><small style="color:#f59e0b">${c.token}</small></span>
-                    <button class="btn-del" onclick="remover(${c.id})">APAGAR</button>
-                </div>`;
-        });
-        log("Sincronização OK.");
-    } catch (e) { 
-        log("Erro: Banco de dados inacessível."); 
+
+        if(data.length > 0) {
+            // Define o condomínio do operador (ex: "ALVORADA")
+            const nomeCondoPuro = data[0].nome.replace("USER: ", "");
+            carregarApp('user', `OPERADOR: ${nomeCondoPuro}`, nomeCondoPuro);
+        } else { 
+            alert("Login ou Senha do Operador inválidos."); 
+        }
     }
 }
 
-async function salvarNoBanco() {
-    const nome = document.getElementById('nome-condo').value.toUpperCase();
-    const token = document.getElementById('token-condo').value;
+async function atualizarDados() {
+    const res = await fetch(`${URL_BASE}?select=*&order=created_at.desc`, { 
+        headers: { 'apikey': KEY_JWT, 'Authorization': `Bearer ${KEY_JWT}` } 
+    });
+    const data = await res.json();
     
-    if(!nome || !token) {
-        alert("Preencha o nome do condomínio!");
-        return;
-    }
+    const selUser = document.getElementById('sel_condo_user');
+    const selMap = document.getElementById('sel_condo_map');
+    const listaAdmin = document.getElementById('lista-admin');
+    
+    if(selUser) selUser.innerHTML = "";
+    if(selMap) selMap.innerHTML = "";
+    if(listaAdmin) listaAdmin.innerHTML = "";
+    markers.clearLayers();
 
-    log("Enviando registro...");
-    try {
-        const res = await fetch(URL_REST, {
-            method: 'POST',
-            headers: { 
-                'apikey': KEY_JWT, 
-                'Authorization': `Bearer ${KEY_JWT}`,
-                'Content-Type': 'application/json',
-                'Prefer': 'return=minimal'
-            },
-            body: JSON.stringify({ nome, token })
-        });
-
-        if(res.ok) {
-            log("Sincronizado com Sucesso!");
-            document.getElementById('nome-condo').value = "";
-            document.getElementById('token-condo').value = "";
-            listar();
-        } else {
-            const err = await res.json();
-            log("Erro Banco: " + err.message);
+    data.forEach(item => {
+        // Se for Condomínio Master
+        if(!item.nome.startsWith("CASA:") && !item.nome.startsWith("USER:")) {
+            // Se for operador, ele só vê o SEU condomínio nas opções de cadastro
+            if(currentCondo && item.nome !== currentCondo) return;
+            
+            if(selUser) selUser.innerHTML += `<option value="${item.nome}">${item.nome}</option>`;
+            if(selMap) selMap.innerHTML += `<option value="${item.nome}">${item.nome}</option>`;
+            if(listaAdmin) listaAdmin.innerHTML += `<div class="item-lista"><b>${item.nome}</b> <button class="btn btn-del" onclick="remover(${item.id})">EXCLUIR</button></div>`;
         }
-    } catch (e) { log("Falha de conexão."); }
+
+        // Se for uma CASA cadastrada
+        if(item.nome.startsWith("CASA:")) {
+            const vinculo = item.nome.replace("CASA: ", "");
+            
+            // FILTRO CRUCIAL: Se estiver como operador, só mostra no mapa as casas do condomínio dele
+            if(currentCondo && vinculo !== currentCondo) return;
+
+            if(item.token && item.token.includes("COORD:")) {
+                const c = item.token.replace("COORD:", "").split(",");
+                let info = `<b>${vinculo}</b><br>${item.rua}`;
+                if(item.cnpj) info += ` Nº ${item.cnpj}`;
+                if(item.quadra) info += `<br>QD ${item.quadra} LT ${item.lote}`;
+                
+                L.marker([c[0], c[1]]).addTo(markers).bindPopup(info);
+            }
+        }
+    });
+}
+
+function carregarApp(role, label, condo = null) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-container').style.display = 'flex';
+    document.getElementById('display-user').innerText = label;
+    currentCondo = condo;
+
+    if(role === 'admin') {
+        document.getElementById('admin-tools').classList.remove('hidden');
+        document.getElementById('report-window').classList.add('hidden');
+    } else {
+        document.getElementById('admin-tools').classList.add('hidden');
+        document.getElementById('report-window').classList.remove('hidden');
+    }
+    
+    // Inicializa o mapa APÓS exibir o container
+    if (!map) {
+        map = L.map('map').setView([-23.206558, -47.034927], 19);
+        L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', { maxZoom: 21, subdomains:['mt0','mt1','mt2','mt3'] }).addTo(map);
+        markers.addTo(map);
+        map.on('click', (e) => { 
+            clickCoords = e.latlng; 
+            L.popup().setLatLng(e.latlng).setContent("<b>Ponto Selecionado</b>").openOn(map); 
+        });
+    }
+    
+    setTimeout(() => { map.invalidateSize(); }, 300);
+    atualizarDados();
+}
+
+async function atualizarDados() {
+    const res = await fetch(`${URL_BASE}?select=*&order=created_at.desc`, { headers: { 'apikey': KEY_JWT, 'Authorization': `Bearer ${KEY_JWT}` } });
+    const data = await res.json();
+    const selUser = document.getElementById('sel_condo_user');
+    const selMap = document.getElementById('sel_condo_map');
+    const listaAdmin = document.getElementById('lista-admin');
+    
+    if(selUser) selUser.innerHTML = "";
+    if(selMap) selMap.innerHTML = "";
+    if(listaAdmin) listaAdmin.innerHTML = "";
+    markers.clearLayers();
+
+    data.forEach(item => {
+        if(!item.nome.startsWith("CASA:") && !item.nome.startsWith("USER:")) {
+            if(currentCondo && item.nome !== currentCondo) return;
+            if(selUser) selUser.innerHTML += `<option value="${item.nome}">${item.nome}</option>`;
+            if(selMap) selMap.innerHTML += `<option value="${item.nome}">${item.nome}</option>`;
+            if(listaAdmin) listaAdmin.innerHTML += `<div class="item-lista"><b>${item.nome}</b> <button class="btn btn-del" onclick="remover(${item.id})">EXCLUIR</button></div>`;
+        }
+        if(item.nome.startsWith("CASA:")) {
+            const vinculo = item.nome.replace("CASA: ", "");
+            if(currentCondo && vinculo !== currentCondo) return;
+            if(item.token && item.token.includes("COORD:")) {
+                const c = item.token.replace("COORD:", "").split(",");
+                let info = `<b>${vinculo}</b><br>${item.rua}`;
+                if(item.cnpj) info += ` Nº ${item.cnpj}`;
+                if(item.quadra) info += `<br>QD ${item.quadra} LT ${item.lote}`;
+                L.marker([c[0], c[1]]).addTo(markers).bindPopup(info);
+            }
+        }
+    });
+}
+
+async function salvarCondo() {
+    const payload = { nome: document.getElementById('nome_condo').value.toUpperCase(), cnpj: document.getElementById('cnpj_condo').value, token: document.getElementById('token_condo').value };
+    await fetch(URL_BASE, { method: 'POST', headers: { 'apikey': KEY_JWT, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    atualizarDados();
+}
+
+async function salvarCasa() {
+    if(!clickCoords) return alert("Clique no mapa primeiro!");
+    const payload = { 
+        nome: `CASA: ${document.getElementById('sel_condo_map').value}`, 
+        rua: document.getElementById('rua').value.toUpperCase(), 
+        cnpj: document.getElementById('numero').value, 
+        quadra: document.getElementById('qd').value.toUpperCase(), 
+        lote: document.getElementById('lt').value.toUpperCase(), 
+        token: `COORD:${clickCoords.lat},${clickCoords.lng}` 
+    };
+    await fetch(URL_BASE, { method: 'POST', headers: { 'apikey': KEY_JWT, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    atualizarDados();
+    alert("Unidade fixada!");
+}
+
+async function salvarUser() {
+    const payload = { nome: `USER: ${document.getElementById('sel_condo_user').value}`, cnpj: document.getElementById('new_user').value, rua: document.getElementById('new_pass').value, token: "ACCESS" };
+    await fetch(URL_BASE, { method: 'POST', headers: { 'apikey': KEY_JWT, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    alert("Operador criado!");
 }
 
 async function remover(id) {
-    if(confirm("Deseja remover este cliente?")) {
-        try {
-            await fetch(`${URL_REST}?id=eq.${id}`, {
-                method: 'DELETE',
-                headers: { 
-                    'apikey': KEY_JWT, 
-                    'Authorization': `Bearer ${KEY_JWT}` 
-                }
-            });
-            listar();
-        } catch (e) { log("Erro ao deletar."); }
+    if(confirm("Deseja excluir este condomínio?")) {
+        await fetch(`${URL_BASE}?id=eq.${id}`, { method: 'DELETE', headers: { 'apikey': KEY_JWT, 'Authorization': `Bearer ${KEY_JWT}` } });
+        atualizarDados();
     }
 }
-
-function gerarToken() {
-    const n = document.getElementById('nome-condo').value;
-    if(n.length >= 3) {
-        document.getElementById('token-condo').value = n.substring(0,3).toUpperCase() + "-" + Math.floor(Math.random() * 9000 + 1000);
-    }
-}
-
-// Inicialização do Mapa
-const map = L.map('map').setView([-23.206558, -47.034927], 16);
-L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', { 
-    maxZoom: 20, 
-    subdomains: ['mt0','mt1','mt2','mt3'] 
-}).addTo(map);
-
-// Inicia a listagem ao abrir
-listar();
 </script>
-
 </body>
 </html>
