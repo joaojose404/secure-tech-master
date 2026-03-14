@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Navegação Visitante - Secure Tech</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        :root {
+            --navy: #020617;
+            --lead: rgba(30, 41, 59, 0.95);
+            --accent: #3b82f6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: rgba(255,255,255,0.12);
+            --text: #f8fafc;
+            --muted: #94a3b8;
+        }
+
+        * { box-sizing: border-box; }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            font-family: "Segoe UI", sans-serif;
+            background: var(--navy);
+            overflow: hidden;
+            color: var(--text);
+        }
+
+        #map {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 14px;
+            left: 14px;
+            z-index: 20;
+            width: min(420px, calc(100vw - 28px));
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .panel {
+            background: var(--lead);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 14px;
+            box-shadow: 0 12px 32px rgba(0,0,0,.3);
+            backdrop-filter: blur(6px);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .panel-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #dbeafe;
+        }
+
+        .mini-btn {
+            width: auto;
+            padding: 8px 10px;
+            font-size: 11px;
+            border-radius: 8px;
+            border: none;
+            background: rgba(255,255,255,0.08);
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .container-login {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 30;
+            background: var(--navy);
+            border: 1px solid var(--border);
+            padding: 25px;
+            border-radius: 15px;
+            width: 88%;
+            max-width: 360px;
+            text-align: center;
+            color: white;
+            box-shadow: 0 12px 32px rgba(0,0,0,.35);
+        }
+
+        .title {
+            font-size: 22px;
+            color: var(--accent);
+            margin: 0 0 6px 0;
+        }
+
+        .subtitle {
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 18px;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 6px;
+        }
+
+        .tab-btn {
+            background: rgba(255,255,255,0.08);
+            font-size: 11px;
+            padding: 10px;
+            flex: 1;
+            border: none;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        .tab-btn.active {
+            background: var(--accent);
+        }
+
+        input, select, button {
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+            font-size: 14px;
+            background: var(--lead);
+            color: white;
+            width: 100%;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(59,130,246,.18);
+        }
+
+        button {
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button.primary {
+            background: var(--accent);
+            border: none;
+        }
+
+        button.success {
+            background: var(--success);
+            border: none;
+        }
+
+        button.warning {
+            background: var(--warning);
+            color: #111827;
+            border: none;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .info-box {
+            font-size: 12px;
+            line-height: 1.5;
+            color: #e2e8f0;
+        }
+
+        .status-line {
+            font-size: 12px;
+            color: var(--muted);
+            text-align: center;
+            min-height: 18px;
+        }
+
+        .alert-box {
+            margin-top: 10px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 700;
+            display: none;
+        }
+
+        .alert-box.show {
+            display: block;
+        }
+
+        .alert-success {
+            background: rgba(16,185,129,0.15);
+            border: 1px solid rgba(16,185,129,0.45);
+            color: #d1fae5;
+        }
+
+        .alert-warning {
+            background: rgba(245,158,11,0.15);
+            border: 1px solid rgba(245,158,11,0.45);
+            color: #fde68a;
+        }
+
+        .alert-danger {
+            background: rgba(239,68,68,0.15);
+            border: 1px solid rgba(239,68,68,0.45);
+            color: #fecaca;
+        }
+
+        .leaflet-routing-container {
+            display: none;
+        }
+
+        .leaflet-popup-content-wrapper,
+        .leaflet-popup-tip {
+            background: #0f172a;
+            color: white;
+        }
+
+        @media (max-width: 700px) {
+            .overlay {
+                top: auto;
+                left: 10px;
+                right: 10px;
+                bottom: 10px;
+                width: auto;
+                max-width: none;
+            }
+
+            .panel {
+                padding: 12px;
+                max-height: 40vh;
+                overflow-y: auto;
+            }
+
+            .panel.reduced {
+                max-height: 72px;
+                overflow: hidden;
+            }
+
+            .panel.reduced .panel-body {
+                display: none;
+            }
+
+            .tab-btn {
+                padding: 12px 8px;
+                font-size: 10px;
+            }
+
+            .container-login {
+                width: calc(100vw - 24px);
+                max-width: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="step-condo" class="container-login">
+        <h2 class="title">Acesso</h2>
+        <div class="subtitle">Digite o nome do condomínio</div>
+
+        <input
+            type="text"
+            id="input-condo"
+            placeholder="CONDOMÍNIO"
+            oninput="limparStatusCondominio()"
+            onkeydown="if(event.key==='Enter'){conectarCondominio()}"
+        />
+
+        <button class="primary" style="margin-top:10px;" onclick="conectarCondominio()">Continuar</button>
+        <div id="status-condo" class="status-line" style="margin-top:12px;"></div>
+    </div>
+
+    <div id="step-ident" class="container-login hidden">
+        <h2 class="title">Identificação</h2>
+        <div class="subtitle">Preencha seus dados para iniciar a navegação</div>
+
+        <input type="text" id="input-nome" placeholder="SEU NOME" />
+        <input type="text" id="input-placa" placeholder="PLACA (OBRIGATÓRIA)" />
+        <input type="text" id="input-liberado-por" placeholder="LIBERADO POR" />
+
+        <button class="primary" style="margin-top:10px;" onclick="irParaMapa()">Iniciar</button>
+    </div>
+
+    <div id="step-mapa" class="overlay hidden">
+        <div class="panel" id="painel-mapa">
+            <div class="panel-header">
+                <div class="panel-title">Navegação do Visitante</div>
+                <button class="mini-btn" onclick="togglePainelMapa()" id="btn-toggle-painel">Ocultar</button>
+            </div>
+
+            <div class="panel-body">
+                <div class="tab-buttons">
+                    <button class="tab-btn active" id="btn-rua" onclick="switchTab('rua')">RUA / Nº</button>
+                    <button class="tab-btn" id="btn-quadra" onclick="switchTab('quadra')">QUADRA / LOTE</button>
+                </div>
+
+                <div id="busca-rua" style="margin-top:10px;">
+                    <select id="select-rua" onchange="limparBusca()">
+                        <option value="">SELECIONE A RUA</option>
+                    </select>
+                    <input type="text" id="input-num" placeholder="NÚMERO" oninput="buscarDestino('rua')" />
+                </div>
+
+                <div id="busca-quadra" class="hidden" style="margin-top:10px;">
+                    <select id="select-quadra" onchange="limparBusca()">
+                        <option value="">SELECIONE A QUADRA</option>
+                    </select>
+                    <input type="text" id="input-lote" placeholder="LOTE" oninput="buscarDestino('quadra')" />
+                </div>
+
+                <div class="info-box" id="info-destino" style="margin-top:12px;">
+                    Selecione o destino para traçar a rota.
+                </div>
+
+                <div class="status-line" id="status-rota" style="margin-top:10px;"></div>
+                <div id="alerta-box" class="alert-box"></div>
+
+                <div style="margin-top:10px; display:flex; gap:8px;">
+                    <button class="success" onclick="centralizarNaMinhaPosicao()">Minha posição</button>
+                    <button class="warning" onclick="retornarPortaria()">Retornar à Portaria</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <script>
+        const SUPABASE_URL = 'https://pflheawrokvkckbcwuye.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBmbGhlYXdyb2t2a2NrYmN3dXllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzNTgxMzAsImV4cCI6MjA4ODkzNDEzMH0.tk3l6mi6QjFR2UVX_LCYXzSsxCDUK2nC24gkVUtMWUg';
+        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let map = null;
+        let routingControl = null;
+        let portariaMarker = null;
+        let destinoMarker = null;
+        let visitanteMarker = null;
+
+        let condominioAtual = null;
+        let lotesCondominio = [];
+        let visitaAtualId = null;
+        let loteDestinoAtual = null;
+        let geolocationWatchId = null;
+        let ultimoEnvioPosicao = 0;
+        let minhaPosicaoAtual = null;
+        let horarioEntradaSistemaLocal = null;
+
+        let rotaModo = 'destino';
+        let destinoAtualCoords = null;
+        let destinoChegou = false;
+        let ultimoDesvioEm = 0;
+        let ultimoExcessoVelocidadeEm = 0;
+        let ultimaAtualizacaoRotaEm = 0;
+
+        const LIMITE_VELOCIDADE_KMH = 30;
+        const DISTANCIA_CHEGADA_METROS = 35;
+        const DISTANCIA_DESVIO_METROS = 80;
+        const INTERVALO_RECALCULO_ROTA_MS = 12000;
+
+        function escapeHtml(text) {
+            if (text === null || text === undefined) return '';
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function isMobile() {
+            return window.innerWidth <= 700;
+        }
+
+        function togglePainelMapa(force = null) {
+            const painel = document.getElementById('painel-mapa');
+            const botao = document.getElementById('btn-toggle-painel');
+
+            const reduzir = force === null
+                ? !painel.classList.contains('reduced')
+                : force;
+
+            painel.classList.toggle('reduced', reduzir);
+            botao.innerText = reduzir ? 'Mostrar' : 'Ocultar';
+        }
+
+        function limparStatusCondominio() {
+            document.getElementById('status-condo').innerText = '';
+        }
+
+        function mostrarAlerta(tipo, mensagem) {
+            const box = document.getElementById('alerta-box');
+            box.className = 'alert-box show';
+            if (tipo === 'success') box.classList.add('alert-success');
+            else if (tipo === 'warning') box.classList.add('alert-warning');
+            else box.classList.add('alert-danger');
+            box.innerText = mensagem;
+        }
+
+        function limparAlerta() {
+            const box = document.getElementById('alerta-box');
+            box.className = 'alert-box';
+            box.innerText = '';
+        }
+
+        async function conectarCondominio() {
+            const nomeBusca = document.getElementById('input-condo').value.trim().toUpperCase();
+            const status = document.getElementById('status-condo');
+
+            if (!nomeBusca || nomeBusca.length < 2) {
+                status.innerText = 'Digite o nome do condomínio.';
+                return;
+            }
+
+            status.innerText = 'Buscando condomínio...';
+
+            try {
+                const { data: condos, error: condoError } = await sb
+                    .from('condominios')
+                    .select('id, nome, portaria_latitude, portaria_longitude')
+                    .ilike('nome', `%${nomeBusca}%`)
+                    .order('nome', { ascending: true })
+                    .limit(10);
+
+                if (condoError) {
+                    console.error(condoError);
+                    status.innerText = 'Erro ao conectar ao banco.';
+                    return;
+                }
+
+                if (!condos || condos.length === 0) {
+                    status.innerText = 'Condomínio não encontrado.';
+                    return;
+                }
+
+                condominioAtual = condos[0];
+
+                const { data: lotes, error: lotesError } = await sb
+                    .from('lotes')
+                    .select('id, rua, numero, quadra, lote, latitude, longitude')
+                    .eq('condominio_id', condominioAtual.id)
+                    .order('rua', { ascending: true });
+
+                if (lotesError) {
+                    console.error(lotesError);
+                    status.innerText = 'Erro ao carregar unidades.';
+                    return;
+                }
+
+                lotesCondominio = lotes || [];
+
+                if (!lotesCondominio.length) {
+                    status.innerText = 'Este condomínio não possui unidades cadastradas.';
+                    return;
+                }
+
+                status.innerText = `Condomínio encontrado: ${condominioAtual.nome}`;
+                setTimeout(() => {
+                    document.getElementById('step-condo').classList.add('hidden');
+                    document.getElementById('step-ident').classList.remove('hidden');
+                }, 300);
+            } catch (err) {
+                console.error(err);
+                status.innerText = 'Falha de conexão.';
+            }
+        }
+
+        async function irParaMapa() {
+            const nome = document.getElementById('input-nome').value.trim();
+            const placa = document.getElementById('input-placa').value.trim().toUpperCase();
+            const liberadoPor = document.getElementById('input-liberado-por').value.trim().toUpperCase();
+
+            if (!nome) {
+                alert('Informe seu nome.');
+                return;
+            }
+
+            if (!placa) {
+                alert('Informe a placa do veículo.');
+                return;
+            }
+
+            if (!liberadoPor) {
+                alert('Informe quem liberou a entrada.');
+                return;
+            }
+
+            horarioEntradaSistemaLocal = new Date().toISOString();
+
+            document.getElementById('step-ident').classList.add('hidden');
+            document.getElementById('step-mapa').classList.remove('hidden');
+
+            popularFiltros();
+            iniciarMapa();
+
+            if (isMobile()) {
+                togglePainelMapa(false);
+            }
+
+            if (!navigator.geolocation) {
+                alert('Seu dispositivo não suporta localização.');
+                return;
+            }
+
+            document.getElementById('status-rota').innerText = 'Solicitando sua localização...';
+
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    minhaPosicaoAtual = {
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude
+                    };
+
+                    atualizarMarcadorVisitante(minhaPosicaoAtual.lat, minhaPosicaoAtual.lng, true);
+                    document.getElementById('status-rota').innerText = 'Localização obtida. Escolha o destino.';
+                    iniciarRastreamentoVisitante(true);
+                },
+                (error) => {
+                    console.error('Erro ao obter localização inicial:', error);
+                    alert('Ative a localização do celular para iniciar a navegação.');
+                    document.getElementById('status-rota').innerText =
+                        'Localização não autorizada. Ative o GPS do celular.';
+                },
+                {
+                    enableHighAccuracy: true,
+                    maximumAge: 0,
+                    timeout: 15000
+                }
+            );
+        }
+
+        function getPortariaCoords() {
+            if (condominioAtual?.portaria_latitude != null && condominioAtual?.portaria_longitude != null) {
+                return [Number(condominioAtual.portaria_latitude), Number(condominioAtual.portaria_longitude)];
+            }
+            return [-23.2066, -47.0348];
+        }
+
+        function iniciarMapa() {
+            const portaria = getPortariaCoords();
+
+            if (!map) {
+                map = L.map('map', { zoomControl: true }).setView(portaria, 18);
+
+                L.tileLayer(
+                    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                    {
+                        maxZoom: 22,
+                        attribution: 'Tiles &copy; Esri'
+                    }
+                ).addTo(map);
+
+                portariaMarker = L.marker(portaria)
+                    .addTo(map)
+                    .bindPopup('<b>Portaria</b>');
+            } else {
+                map.flyTo(portaria, 18);
+            }
+
+            map.whenReady(() => {
+                setTimeout(() => {
+                    map.invalidateSize();
+                }, 500);
+            });
+
+            setTimeout(() => map.invalidateSize(), 300);
+        }
+
+        function popularFiltros() {
+            const selRua = document.getElementById('select-rua');
+            const selQuadra = document.getElementById('select-quadra');
+
+            selRua.innerHTML = '<option value="">SELECIONE A RUA</option>';
+            selQuadra.innerHTML = '<option value="">SELECIONE A QUADRA</option>';
+
+            const ruas = [...new Set(lotesCondominio.map(c => c.rua).filter(Boolean))].sort();
+            const quadras = [...new Set(lotesCondominio.map(c => c.quadra).filter(Boolean))].sort();
+
+            ruas.forEach(r => {
+                selRua.innerHTML += `<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`;
+            });
+
+            quadras.forEach(q => {
+                selQuadra.innerHTML += `<option value="${escapeHtml(q)}">${escapeHtml(q)}</option>`;
+            });
+        }
+
+        function switchTab(tab) {
+            document.getElementById('busca-rua').classList.toggle('hidden', tab !== 'rua');
+            document.getElementById('busca-quadra').classList.toggle('hidden', tab !== 'quadra');
+            document.getElementById('btn-rua').classList.toggle('active', tab === 'rua');
+            document.getElementById('btn-quadra').classList.toggle('active', tab === 'quadra');
+            limparBusca();
+        }
+
+        function buscarDestino(tipo) {
+            let lote = null;
+
+            if (tipo === 'rua') {
+                const rua = document.getElementById('select-rua').value;
+                const numero = document.getElementById('input-num').value.trim();
+
+                if (!rua || !numero) return;
+
+                lote = lotesCondominio.find(c =>
+                    c.rua === rua && String(c.numero || '') === String(numero)
+                );
+            } else {
+                const quadra = document.getElementById('select-quadra').value;
+                const loteNum = document.getElementById('input-lote').value.trim();
+
+                if (!quadra || !loteNum) return;
+
+                lote = lotesCondominio.find(c =>
+                    c.quadra === quadra && String(c.lote || '') === String(loteNum)
+                );
+            }
+
+            if (!lote) return;
+
+            if (lote.latitude == null || lote.longitude == null) {
+                alert('Esta unidade não possui coordenadas cadastradas.');
+                return;
+            }
+
+            rotaModo = 'destino';
+            destinoChegou = false;
+            loteDestinoAtual = lote;
+            destinoAtualCoords = [Number(lote.latitude), Number(lote.longitude)];
+            limparAlerta();
+
+            document.getElementById('info-destino').innerHTML = `
+                <b>Destino encontrado</b><br>
+                Rua: ${escapeHtml(lote.rua || '-')} ${escapeHtml(lote.numero || '')}<br>
+                Quadra: ${escapeHtml(lote.quadra || '-')} | Lote: ${escapeHtml(lote.lote || '-')}
+            `;
+
+            tracarRotaAteDestino(destinoAtualCoords[0], destinoAtualCoords[1], true);
+            registrarOuAtualizarVisita();
+
+            if (isMobile()) {
+                togglePainelMapa(true);
+            }
+        }
+
+        function obterOrigemRota() {
+            if (minhaPosicaoAtual && minhaPosicaoAtual.lat && minhaPosicaoAtual.lng) {
+                return [minhaPosicaoAtual.lat, minhaPosicaoAtual.lng];
+            }
+            return getPortariaCoords();
+        }
+
+        function getPaddingMapa() {
+            if (isMobile()) {
+                return {
+                    paddingTopLeft: [20, 20],
+                    paddingBottomRight: [20, 220]
+                };
+            }
+
+            return {
+                paddingTopLeft: [450, 30],
+                paddingBottomRight: [30, 30]
+            };
+        }
+
+        function tracarRotaAteDestino(destLat, destLng, forceRecreate = false) {
+            if (!map) return;
+
+            const origem = obterOrigemRota();
+            const waypoints = [
+                L.latLng(origem[0], origem[1]),
+                L.latLng(destLat, destLng)
+            ];
+
+            if (destinoMarker) {
+                map.removeLayer(destinoMarker);
+            }
+
+            destinoMarker = L.marker([destLat, destLng])
+                .addTo(map)
+                .bindPopup(rotaModo === 'retorno' ? '<b>Portaria</b>' : '<b>Destino</b>')
+                .openPopup();
+
+            if (!routingControl || forceRecreate) {
+                if (routingControl) {
+                    map.removeControl(routingControl);
+                    routingControl = null;
+                }
+
+                routingControl = L.Routing.control({
+                    waypoints: waypoints,
+                    router: L.Routing.osrmv1({
+                        serviceUrl: 'https://router.project-osrm.org/route/v1'
+                    }),
+                    lineOptions: {
+                        styles: [{ color: '#3b82f6', weight: 7, opacity: 0.85 }]
+                    },
+                    createMarker: function(i, wp) {
+                        if (i === 0) {
+                            return L.marker(wp.latLng).bindPopup(minhaPosicaoAtual ? 'Sua posição' : 'Origem');
+                        }
+                        return L.marker(wp.latLng).bindPopup(rotaModo === 'retorno' ? 'Portaria' : 'Destino');
+                    },
+                    addWaypoints: false,
+                    routeWhileDragging: false,
+                    show: false,
+                    draggableWaypoints: false,
+                    fitSelectedRoutes: false
+                }).addTo(map);
+            } else {
+                routingControl.setWaypoints(waypoints);
+            }
+
+            ultimaAtualizacaoRotaEm = Date.now();
+
+            const bounds = L.latLngBounds([
+                [origem[0], origem[1]],
+                [destLat, destLng]
+            ]);
+
+            const padding = getPaddingMapa();
+            map.fitBounds(bounds, padding);
+
+            if (rotaModo === 'retorno') {
+                document.getElementById('status-rota').innerText = 'Rota traçada para retorno à portaria.';
+            } else {
+                document.getElementById('status-rota').innerText =
+                    minhaPosicaoAtual
+                        ? 'Rota traçada da sua posição até o destino.'
+                        : 'Rota traçada da portaria até o destino. Aguarde sua localização para atualizar.';
+            }
+        }
+
+        async function registrarOuAtualizarVisita() {
+            if (!condominioAtual || !loteDestinoAtual) return;
+
+            const nome = document.getElementById('input-nome').value.trim().toUpperCase();
+            const placa = document.getElementById('input-placa').value.trim().toUpperCase();
+            const liberadoPor = document.getElementById('input-liberado-por').value.trim().toUpperCase();
+
+            try {
+                if (!visitaAtualId) {
+                    const { data, error } = await sb
+                        .from('visitas')
+                        .insert([{
+                            condominio_id: condominioAtual.id,
+                            lote_id: loteDestinoAtual.id,
+                            nome_visitante: nome,
+                            placa: placa,
+                            autorizado_por: liberadoPor,
+                            destino_texto: montarDestinoTexto(loteDestinoAtual),
+                            status: 'em_rota',
+                            horario_entrada_sistema: horarioEntradaSistemaLocal || new Date().toISOString(),
+                            horario_saida_portaria: new Date().toISOString(),
+                            observacoes: 'Visita iniciada pelo sistema de navegação.'
+                        }])
+                        .select('id')
+                        .single();
+
+                    if (error) {
+                        console.error(error);
+                        return;
+                    }
+
+                    visitaAtualId = data.id;
+                } else {
+                    const { error } = await sb
+                        .from('visitas')
+                        .update({
+                            lote_id: loteDestinoAtual.id,
+                            placa: placa,
+                            autorizado_por: liberadoPor,
+                            destino_texto: montarDestinoTexto(loteDestinoAtual),
+                            status: 'em_rota',
+                            updated_at: new Date().toISOString()
+                        })
+                        .eq('id', visitaAtualId);
+
+                    if (error) console.error(error);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function montarDestinoTexto(lote) {
+            let txt = '';
+            if (lote.rua) txt += lote.rua;
+            if (lote.numero) txt += ` Nº ${lote.numero}`;
+            if (lote.quadra || lote.lote) {
+                txt += ` / QD ${lote.quadra || '-'} LT ${lote.lote || '-'}`;
+            }
+            return txt.trim();
+        }
+
+        function iniciarRastreamentoVisitante(centralizar = false) {
+            if (!navigator.geolocation) {
+                console.warn('Geolocalização não suportada.');
+                return;
+            }
+
+            if (geolocationWatchId) return;
+
+            geolocationWatchId = navigator.geolocation.watchPosition(
+                async (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    const accuracy = position.coords.accuracy;
+                    const speedMs = position.coords.speed;
+                    const speedKmh = speedMs != null ? speedMs * 3.6 : 0;
+
+                    minhaPosicaoAtual = { lat, lng };
+                    atualizarMarcadorVisitante(lat, lng, centralizar);
+                    centralizar = false;
+
+                    await verificarVelocidade(speedKmh);
+
+                    if (destinoAtualCoords) {
+                        verificarChegada(lat, lng);
+                        await verificarDesvio(lat, lng);
+
+                        const agora = Date.now();
+                        const precisaRecalcular =
+                            !routingControl ||
+                            (agora - ultimaAtualizacaoRotaEm) >= INTERVALO_RECALCULO_ROTA_MS;
+
+                        if ((!destinoChegou || rotaModo === 'retorno') && precisaRecalcular) {
+                            tracarRotaAteDestino(destinoAtualCoords[0], destinoAtualCoords[1], false);
+                        }
+                    }
+
+                    const agora = Date.now();
+                    if (agora - ultimoEnvioPosicao < 8000) return;
+                    ultimoEnvioPosicao = agora;
+
+                    await enviarPosicaoTempoReal(lat, lng, accuracy, speedKmh);
+                },
+                (error) => {
+                    console.error('Erro geolocalização:', error);
+                    document.getElementById('status-rota').innerText =
+                        'Não foi possível obter sua localização. A rota pode usar a portaria como origem.';
+                },
+                {
+                    enableHighAccuracy: true,
+                    maximumAge: 5000,
+                    timeout: 10000
+                }
+            );
+        }
+
+        function atualizarMarcadorVisitante(lat, lng, centralizar = false) {
+            if (visitanteMarker) {
+                visitanteMarker.setLatLng([lat, lng]);
+            } else {
+                visitanteMarker = L.circleMarker([lat, lng], {
+                    radius: 8,
+                    color: '#10b981',
+                    fillColor: '#10b981',
+                    fillOpacity: 0.9
+                }).addTo(map).bindPopup('<b>Você está aqui</b>');
+            }
+
+            if (centralizar && map) {
+                map.flyTo([lat, lng], 18, { duration: 0.8 });
+            }
+        }
+
+        function distanciaMetros(lat1, lon1, lat2, lon2) {
+            const R = 6371000;
+            const toRad = deg => deg * Math.PI / 180;
+
+            const dLat = toRad(lat2 - lat1);
+            const dLon = toRad(lon2 - lon1);
+
+            const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
+        function distanciaPontoSegmentoMetros(px, py, x1, y1, x2, y2) {
+            function toXY(lat, lng) {
+                const ky = 111320;
+                const kx = 111320 * Math.cos(lat * Math.PI / 180);
+                return { x: lng * kx, y: lat * ky };
+            }
+
+            const p = toXY(px, py);
+            const a = toXY(x1, y1);
+            const b = toXY(x2, y2);
+
+            const abx = b.x - a.x;
+            const aby = b.y - a.y;
+            const apx = p.x - a.x;
+            const apy = p.y - a.y;
+
+            const ab2 = abx * abx + aby * aby;
+            let t = ab2 === 0 ? 0 : (apx * abx + apy * aby) / ab2;
+            t = Math.max(0, Math.min(1, t));
+
+            const cx = a.x + abx * t;
+            const cy = a.y + aby * t;
+
+            const dx = p.x - cx;
+            const dy = p.y - cy;
+
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        function distanciaDaRota(lat, lng) {
+            if (!routingControl || !routingControl._routes || !routingControl._routes.length) {
+                return 0;
+            }
+
+            const coords = routingControl._routes[0].coordinates || [];
+            if (coords.length < 2) return 0;
+
+            let menor = Infinity;
+
+            for (let i = 0; i < coords.length - 1; i++) {
+                const a = coords[i];
+                const b = coords[i + 1];
+                const dist = distanciaPontoSegmentoMetros(lat, lng, a.lat, a.lng, b.lat, b.lng);
+                if (dist < menor) menor = dist;
+            }
+
+            return menor;
+        }
+
+        async function verificarVelocidade(speedKmh) {
+            if (!speedKmh || speedKmh <= LIMITE_VELOCIDADE_KMH) return;
+
+            const agora = Date.now();
+            if (agora - ultimoExcessoVelocidadeEm < 15000) return;
+            ultimoExcessoVelocidadeEm = agora;
+
+            mostrarAlerta('danger', `Velocidade acima do limite. Máximo permitido: ${LIMITE_VELOCIDADE_KMH} km/h.`);
+            await registrarEventoOperacional(
+                'excesso_velocidade',
+                'Excesso de velocidade detectado',
+                `Visitante acima de ${LIMITE_VELOCIDADE_KMH} km/h. Velocidade atual aproximada: ${speedKmh.toFixed(1)} km/h.`,
+                'alta'
+            );
+        }
+
+        async function verificarDesvio(lat, lng) {
+            if (!routingControl || !destinoAtualCoords) return;
+
+            const distRota = distanciaDaRota(lat, lng);
+            if (distRota <= DISTANCIA_DESVIO_METROS) return;
+
+            const agora = Date.now();
+            if (agora - ultimoDesvioEm < 15000) return;
+            ultimoDesvioEm = agora;
+
+            mostrarAlerta('warning', 'Você saiu da rota. O sistema recalculou o caminho.');
+            document.getElementById('status-rota').innerText = 'Desvio detectado. Rota recalculada automaticamente.';
+
+            await registrarEventoOperacional(
+                'desvio_rota',
+                'Desvio de rota detectado',
+                `Visitante saiu da rota prevista. Distância aproximada da rota: ${distRota.toFixed(0)} metros.`,
+                'alta'
+            );
+
+            tracarRotaAteDestino(destinoAtualCoords[0], destinoAtualCoords[1], false);
+
+            if (visitaAtualId) {
+                await sb
+                    .from('visitas')
+                    .update({
+                        status: 'desvio',
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', visitaAtualId);
+            }
+        }
+
+        function verificarChegada(lat, lng) {
+            if (!destinoAtualCoords || destinoChegou) return;
+
+            const dist = distanciaMetros(lat, lng, destinoAtualCoords[0], destinoAtualCoords[1]);
+
+            if (dist <= DISTANCIA_CHEGADA_METROS) {
+                destinoChegou = true;
+
+                if (rotaModo === 'destino') {
+                    mostrarAlerta('success', 'Você chegou ao destino. Clique em "Retornar à Portaria".');
+                    document.getElementById('status-rota').innerText = 'Destino alcançado.';
+                    marcarChegada();
+                } else if (rotaModo === 'retorno') {
+                    mostrarAlerta('success', 'Você retornou à portaria com sucesso.');
+                    document.getElementById('status-rota').innerText = 'Retorno à portaria concluído.';
+                    marcarChegadaPortaria();
+                }
+            }
+        }
+
+        async function marcarChegada() {
+            if (!visitaAtualId) return;
+
+            try {
+                await sb
+                    .from('visitas')
+                    .update({
+                        status: 'chegou',
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', visitaAtualId);
+
+                await registrarEventoOperacional(
+                    'chegada_destino',
+                    'Visitante chegou ao destino',
+                    'O visitante alcançou o lote de destino e pode retornar à portaria.',
+                    'baixa'
+                );
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function marcarChegadaPortaria() {
+            if (!visitaAtualId) return;
+
+            try {
+                await sb
+                    .from('visitas')
+                    .update({
+                        horario_chegada_portaria: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', visitaAtualId);
+
+                await encerrarVisita();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function registrarEventoOperacional(tipoEvento, titulo, descricao, prioridade = 'normal') {
+            if (!condominioAtual || !visitaAtualId || !minhaPosicaoAtual) return;
+
+            try {
+                await sb.from('eventos_operacionais').insert([{
+                    condominio_id: condominioAtual.id,
+                    tipo_origem: 'visitante',
+                    origem_id: visitaAtualId,
+                    tipo_evento: tipoEvento,
+                    titulo: titulo,
+                    descricao: descricao,
+                    latitude: minhaPosicaoAtual.lat,
+                    longitude: minhaPosicaoAtual.lng,
+                    prioridade: prioridade
+                }]);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function enviarPosicaoTempoReal(lat, lng, accuracy, speedKmh) {
+            if (!condominioAtual || !visitaAtualId) return;
+
+            try {
+                await sb.from('posicoes_tempo_real').insert([{
+                    condominio_id: condominioAtual.id,
+                    tipo_entidade: 'visitante',
+                    entidade_id: visitaAtualId,
+                    latitude: lat,
+                    longitude: lng,
+                    precisao: accuracy || null,
+                    velocidade: speedKmh || null,
+                    bateria: null
+                }]);
+
+                await sb
+                    .from('visitas')
+                    .update({
+                        latitude_atual: lat,
+                        longitude_atual: lng,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', visitaAtualId);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function centralizarNaMinhaPosicao() {
+            if (!map) return;
+
+            if (minhaPosicaoAtual) {
+                map.flyTo([minhaPosicaoAtual.lat, minhaPosicaoAtual.lng], 18, { duration: 0.8 });
+                return;
+            }
+
+            const portaria = getPortariaCoords();
+            map.flyTo(portaria, 18, { duration: 0.8 });
+        }
+
+        async function retornarPortaria() {
+            if (!minhaPosicaoAtual) {
+                alert('Aguardando sua localização atual.');
+                return;
+            }
+
+            const portaria = getPortariaCoords();
+
+            rotaModo = 'retorno';
+            destinoChegou = false;
+            destinoAtualCoords = [portaria[0], portaria[1]];
+
+            mostrarAlerta('warning', 'Retorno à portaria iniciado.');
+            document.getElementById('info-destino').innerHTML = `
+                <b>Retorno à portaria</b><br>
+                Siga a rota exibida no mapa para voltar ao ponto inicial.
+            `;
+
+            tracarRotaAteDestino(portaria[0], portaria[1], true);
+
+            if (isMobile()) {
+                togglePainelMapa(true);
+            }
+
+            if (visitaAtualId) {
+                await sb
+                    .from('visitas')
+                    .update({
+                        status: 'em_rota',
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', visitaAtualId);
+
+                await registrarEventoOperacional(
+                    'retorno_portaria',
+                    'Retorno à portaria iniciado',
+                    'O visitante iniciou o retorno à portaria pelo aplicativo.',
+                    'baixa'
+                );
+            }
+        }
+
+        async function encerrarVisita() {
+            if (!visitaAtualId) {
+                location.reload();
+                return;
+            }
+
+            try {
+                await sb
+                    .from('visitas')
+                    .update({
+                        status: 'finalizada',
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', visitaAtualId);
+
+                if (geolocationWatchId) {
+                    navigator.geolocation.clearWatch(geolocationWatchId);
+                    geolocationWatchId = null;
+                }
+
+                alert('Visita encerrada com sucesso.');
+                location.reload();
+            } catch (err) {
+                console.error(err);
+                alert('Erro ao encerrar visita.');
+            }
+        }
+
+        function limparBusca() {
+            document.getElementById('input-num').value = '';
+            document.getElementById('input-lote').value = '';
+            document.getElementById('info-destino').innerHTML = 'Selecione o destino para traçar a rota.';
+            document.getElementById('status-rota').innerText = '';
+
+            limparAlerta();
+            loteDestinoAtual = null;
+            destinoAtualCoords = null;
+            destinoChegou = false;
+            rotaModo = 'destino';
+
+            if (routingControl) {
+                map.removeControl(routingControl);
+                routingControl = null;
+            }
+
+            if (destinoMarker) {
+                map.removeLayer(destinoMarker);
+                destinoMarker = null;
+            }
+        }
+    </script>
+</body>
+</html>
