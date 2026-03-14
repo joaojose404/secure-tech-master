@@ -1,0 +1,2124 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SECURE TECH - ZAYRON UNIVERSAL</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root {
+      --navy: #020617;
+      --lead: #1e293b;
+      --accent: #3b82f6;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --border: #334155;
+      --muted: #94a3b8;
+      --purple: #8b5cf6;
+      --pink: #ec4899;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: var(--navy);
+      color: #f8fafc;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #login-screen {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, #020617, #0f172a);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .login-box {
+      background: var(--lead);
+      padding: 28px;
+      border-radius: 10px;
+      border: 1px solid var(--accent);
+      width: 100%;
+      max-width: 360px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+
+    #app-container {
+      display: none;
+      width: 100%;
+      height: 100vh;
+      grid-template-columns: 470px 1fr;
+      position: relative;
+    }
+
+    #sidebar {
+      background: var(--lead);
+      border-right: 2px solid var(--accent);
+      padding: 14px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 2;
+    }
+
+    #map {
+      width: 100%;
+      height: 100vh;
+      background: #000;
+      z-index: 1;
+    }
+
+    #map-tools {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      z-index: 5000;
+      width: 320px;
+      pointer-events: none;
+    }
+
+    .map-tool-box {
+      pointer-events: auto;
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      padding: 12px;
+      box-shadow: 0 10px 24px rgba(0,0,0,.35);
+      backdrop-filter: blur(4px);
+    }
+
+    .card {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid var(--border);
+      padding: 12px;
+      border-radius: 8px;
+    }
+
+    .section-header {
+      font-size: 10px;
+      color: var(--accent);
+      font-weight: bold;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 6px;
+      letter-spacing: .8px;
+    }
+
+    input, select, textarea {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      color: #e2e8f0;
+      padding: 10px;
+      border-radius: 6px;
+      width: 100%;
+      margin-bottom: 8px;
+      font-size: 12px;
+      outline: none;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(59,130,246,.15);
+    }
+
+    .btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 11px 12px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      text-transform: uppercase;
+      font-size: 11px;
+      transition: .2s;
+    }
+
+    .btn:hover { filter: brightness(1.1); }
+    .btn-success { background: var(--success); }
+    .btn-warning { background: var(--warning); color: #111827; }
+    .btn-danger { background: var(--danger); }
+    .btn-pink { background: var(--pink); }
+    .btn-purple { background: var(--purple); }
+
+    .btn-del, .btn-mini {
+      width: auto;
+      padding: 5px 8px;
+      font-size: 10px;
+      border-radius: 4px;
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      margin-left: 6px;
+    }
+
+    .btn-del { background: var(--danger); }
+    .btn-mini { background: var(--accent); }
+
+    .btn-link {
+      background: transparent;
+      border: none;
+      color: #93c5fd;
+      padding: 0;
+      margin: 0;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: bold;
+      text-align: left;
+      text-decoration: underline;
+    }
+
+    .hidden { display: none !important; }
+
+    .row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .row > * { flex: 1; }
+
+    .item-lista {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 8px;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      gap: 8px;
+      border-radius: 6px;
+    }
+
+    .item-lista.alerta {
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+    }
+
+    .item-lista.warning {
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+    }
+
+    .item-lista small {
+      color: var(--muted);
+      display: block;
+      margin-top: 2px;
+    }
+
+    .actions-inline {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .stat-box {
+      background: #0f172a;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .stat-box div {
+      font-size: 20px;
+      font-weight: bold;
+      color: var(--success);
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .scroll-list {
+      max-height: 260px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .alert-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: bold;
+      margin-top: 4px;
+      margin-right: 4px;
+    }
+
+    .badge-danger {
+      background: rgba(239,68,68,.2);
+      color: #fecaca;
+      border: 1px solid rgba(239,68,68,.35);
+    }
+
+    .badge-warning {
+      background: rgba(245,158,11,.2);
+      color: #fde68a;
+      border: 1px solid rgba(245,158,11,.35);
+    }
+
+    .badge-success {
+      background: rgba(16,185,129,.2);
+      color: #d1fae5;
+      border: 1px solid rgba(16,185,129,.35);
+    }
+
+    .footer-actions {
+      margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .title-center {
+      text-align: center;
+      padding-bottom: 8px;
+    }
+
+    .title-center h1 {
+      font-size: 18px;
+      color: var(--accent);
+      margin: 0;
+    }
+
+    .leaflet-popup-content-wrapper,
+    .leaflet-popup-tip {
+      background: #0f172a;
+      color: #f8fafc;
+    }
+
+    @media (max-width: 1100px) {
+      #app-container {
+        grid-template-columns: 1fr;
+      }
+
+      #sidebar {
+        height: 50vh;
+        border-right: none;
+        border-bottom: 2px solid var(--accent);
+      }
+
+      #map {
+        height: 50vh;
+      }
+
+      #map-tools {
+        top: auto;
+        bottom: 14px;
+        right: 14px;
+        left: 14px;
+        width: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="login-screen">
+    <div class="login-box">
+      <h2 style="color: var(--accent); margin: 0;">ZAYRON</h2>
+      <div class="muted" style="margin:10px 0 18px;">SECURE TECH</div>
+
+      <input type="text" id="auth_user" placeholder="LOGIN" />
+      <input type="password" id="auth_pass" placeholder="SENHA" />
+      <button class="btn" onclick="fazerLogin()">Acessar Sistema</button>
+    </div>
+  </div>
+
+  <div id="app-container">
+    <div id="sidebar">
+      <div class="title-center">
+        <h1>SECURE TECH</h1>
+        <small id="display-user" style="color: var(--success)"></small><br />
+        <small id="display-condo" style="color: var(--warning)"></small>
+      </div>
+
+      <div id="report-window" class="card">
+        <div class="section-header">Relatório Operacional</div>
+        <div class="stat-grid">
+          <div class="stat-box">
+            <div id="count-visitantes">0</div>
+            <label style="font-size:9px;">Visitantes Ativos</label>
+          </div>
+          <div class="stat-box">
+            <div id="count-rondas" style="color:var(--warning)">0</div>
+            <label style="font-size:9px;">Rondas Ativas</label>
+          </div>
+          <div class="stat-box">
+            <div id="count-lotes" style="color:var(--accent)">0</div>
+            <label style="font-size:9px;">Lotes</label>
+          </div>
+          <div class="stat-box">
+            <div id="count-alertas" style="color:var(--danger)">0</div>
+            <label style="font-size:9px;">Alertas</label>
+          </div>
+        </div>
+      </div>
+
+      <div id="admin-tools" class="hidden">
+        <div class="card">
+          <div class="section-header">1. Novo Condomínio</div>
+          <input type="text" id="nome_condo" placeholder="Nome do condomínio" oninput="gerarToken()" />
+          <input type="text" id="cnpj_condo" placeholder="CNPJ" />
+          <input type="text" id="token_condo" placeholder="Chave de acesso" readonly style="color:var(--warning); background:#1e293b; border-style:dashed;" />
+          <div class="row">
+            <input type="text" id="portaria_lat_novo" placeholder="Portaria Latitude" />
+            <input type="text" id="portaria_lng_novo" placeholder="Portaria Longitude" />
+          </div>
+          <button class="btn btn-purple" onclick="salvarCondo()">Registrar Condomínio</button>
+        </div>
+
+        <div class="card">
+          <div class="section-header">2. Condomínios Cadastrados</div>
+          <div id="lista-admin" class="scroll-list"></div>
+        </div>
+
+        <div class="card">
+          <div class="section-header">3. Gerar Usuário Operador</div>
+          <select id="sel_condo_user"></select>
+          <input type="text" id="new_user_nome" placeholder="Nome do operador" />
+          <input type="text" id="new_user_login" placeholder="Login" />
+          <input type="password" id="new_user_pass" placeholder="Senha" />
+          <button class="btn btn-pink" onclick="salvarUserAdmin()">Criar Usuário</button>
+        </div>
+
+        <div class="card">
+          <div class="section-header">4. Coordenada da Portaria</div>
+          <select id="sel_condo_portaria" onchange="preencherPortariaCondo()"></select>
+          <div class="row">
+            <input type="text" id="portaria_latitude" placeholder="Latitude" />
+            <input type="text" id="portaria_longitude" placeholder="Longitude" />
+          </div>
+          <button class="btn btn-success" onclick="usarPontoSelecionadoComoPortaria()">Usar Ponto do Mapa</button>
+          <button class="btn btn-warning" onclick="salvarPortariaCondo()">Salvar Portaria</button>
+        </div>
+      </div>
+
+      <div id="operator-user-tools" class="hidden">
+        <div class="card">
+          <div class="section-header">Cadastrar Novos Usuários</div>
+          <input type="text" id="op_user_nome" placeholder="Nome do usuário" />
+          <input type="text" id="op_user_login" placeholder="Login" />
+          <input type="password" id="op_user_pass" placeholder="Senha" />
+          <button class="btn btn-pink" onclick="salvarUserOperador()">Cadastrar Usuário</button>
+          <div class="muted">O usuário será criado vinculado ao mesmo condomínio deste operador.</div>
+        </div>
+
+        <div class="card">
+          <div class="section-header">Relatórios</div>
+          <div class="row">
+            <button class="btn btn-success" onclick="gerarRelatorioPDF()">Exportar PDF</button>
+            <button class="btn btn-warning" onclick="atualizarTudo()">Atualizar</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="unit-tools" class="card">
+        <div class="section-header">Cadastro de Unidade</div>
+        <select id="sel_condo_map"></select>
+
+        <div class="row">
+          <input type="text" id="rua" placeholder="Rua / Logradouro" style="flex:3;" />
+          <input type="text" id="numero" placeholder="Nº" style="flex:1;" />
+        </div>
+
+        <div class="row">
+          <input type="text" id="qd" placeholder="Quadra (QD)" />
+          <input type="text" id="lt" placeholder="Lote (LT)" />
+        </div>
+
+        <button class="btn btn-success" onclick="salvarLote()">Fixar no Mapa</button>
+        <div class="muted">Clique no mapa ou busque um endereço para posicionar o lote.</div>
+      </div>
+
+      <div id="visitantes-card" class="card hidden">
+        <div class="section-header">Visitantes</div>
+        <div id="lista-visitantes" class="scroll-list"></div>
+      </div>
+
+      <div id="rondas-card" class="card hidden">
+        <div class="section-header">Rondas</div>
+        <div id="lista-rondas" class="scroll-list"></div>
+      </div>
+
+      <div class="footer-actions">
+        <button class="btn btn-warning" onclick="atualizarTudo()">Atualizar Dados</button>
+        <button class="btn btn-danger" onclick="logout()">Sair</button>
+      </div>
+    </div>
+
+    <div id="map"></div>
+
+    <div id="map-tools">
+      <div class="map-tool-box">
+        <div class="section-header">Ferramentas do Mapa</div>
+
+        <input type="text" id="map-search" placeholder="Buscar endereço, rua ou local..." />
+        <button class="btn btn-purple" onclick="buscarEnderecoMapa()">Buscar no mapa</button>
+
+        <div class="row" style="margin-top:8px;">
+          <button class="btn btn-success" onclick="usarMapaSatelite()">Satélite</button>
+          <button class="btn" onclick="usarMapaRuas()">Ruas</button>
+        </div>
+
+        <div class="row" style="margin-top:8px;">
+          <button class="btn btn-warning" onclick="irParaUltimoPonto()">Último ponto</button>
+          <button class="btn btn-danger" onclick="limparPontoSelecionado()">Limpar ponto</button>
+        </div>
+
+        <div id="map-coords" class="muted" style="margin-top:10px;">
+          Nenhum ponto selecionado.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+
+  <script>
+    const SUPABASE_URL = 'https://pflheawrokvkckbcwuye.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBmbGhlYXdyb2t2a2NrYmN3dXllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzNTgxMzAsImV4cCI6MjA4ODkzNDEzMH0.tk3l6mi6QjFR2UVX_LCYXzSsxCDUK2nC24gkVUtMWUg';
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const LIMITE_VELOCIDADE_KMH = 30;
+    const LIMITE_PARADO_SEG = 180;
+    const LIMITE_DIST_PARADO_METROS = 20;
+
+    let map;
+    let clickCoords = null;
+    let tempMarker = null;
+    let destaqueVisitorMarker = null;
+    let currentUser = null;
+    let currentRole = null;
+    let currentCondoId = null;
+    let currentCondoNome = null;
+
+    let baseLayerAtual = null;
+    let osmLayer = null;
+    let sateliteLayer = null;
+    let claroLayer = null;
+
+    let lotesLayer = L.layerGroup();
+    let visitantesLayer = L.layerGroup();
+    let vigilantesLayer = L.layerGroup();
+
+    let realtimeChannel = null;
+
+    let latestVisitorPositions = new Map();
+    let recentVisitorTracks = new Map();
+    let latestVisitorAlerts = new Map();
+    let latestVisitsById = new Map();
+    let condosCache = [];
+    let ultimoTotalAlertasOperador = 0;
+    let pollingAtualizacao = null;
+    let atualizandoAgora = false;
+
+    function escapeHtml(text) {
+      if (text === null || text === undefined) return '';
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function formatDateTime(dateStr) {
+      if (!dateStr) return '-';
+      const d = new Date(dateStr);
+      return d.toLocaleString('pt-BR');
+    }
+
+    function formatCoords(lat, lng) {
+      if (lat == null || lng == null) return '-';
+      return `${Number(lat).toFixed(6)}, ${Number(lng).toFixed(6)}`;
+    }
+
+    function parseNumberInput(value) {
+      if (value == null) return null;
+      const normalized = String(value).trim().replace(',', '.');
+      if (!normalized) return null;
+      const num = Number(normalized);
+      return Number.isFinite(num) ? num : null;
+    }
+
+    function distanceMeters(lat1, lon1, lat2, lon2) {
+      const R = 6371000;
+      const toRad = deg => deg * Math.PI / 180;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+      return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function gerarToken() {
+      const nome = document.getElementById('nome_condo').value.trim();
+      if (nome.length >= 2) {
+        const rand = Math.random().toString(36).slice(2, 10).toUpperCase();
+        document.getElementById('token_condo').value = `ST-${rand}`;
+      } else {
+        document.getElementById('token_condo').value = '';
+      }
+    }
+
+    function showError(message, error = null) {
+      console.error(message, error || '');
+      alert(message + (error?.message ? `\n\n${error.message}` : ''));
+    }
+
+    function logout() {
+      if (pollingAtualizacao) {
+        clearInterval(pollingAtualizacao);
+        pollingAtualizacao = null;
+      }
+      location.reload();
+    }
+
+    function getCondoFilterId() {
+      if (currentRole === 'admin') return null;
+      return currentCondoId;
+    }
+
+    function dispararBeepAlerta() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(880, ctx.currentTime);
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.15, ctx.currentTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
+
+        oscillator.connect(gain);
+        gain.connect(ctx.destination);
+        oscillator.start();
+        oscillator.stop(ctx.currentTime + 0.36);
+      } catch (err) {
+        console.error('Beep falhou:', err);
+      }
+    }
+
+    async function fazerLogin() {
+      const login = document.getElementById('auth_user').value.trim();
+      const senha = document.getElementById('auth_pass').value.trim();
+
+      if (!login || !senha) {
+        alert('Informe login e senha.');
+        return;
+      }
+
+      try {
+        const { data, error } = await sb
+          .from('usuarios')
+          .select(`
+            id,
+            nome,
+            login,
+            senha,
+            tipo,
+            ativo,
+            condominio_id,
+            condominios (
+              id,
+              nome
+            )
+          `)
+          .eq('login', login)
+          .eq('senha', senha)
+          .eq('ativo', true)
+          .limit(1);
+
+        if (error) {
+          alert('Erro ao fazer login: ' + error.message);
+          return;
+        }
+
+        if (!data || data.length === 0) {
+          alert('Login ou senha inválidos.');
+          return;
+        }
+
+        const user = data[0];
+        currentUser = user;
+        currentRole = user.tipo;
+        currentCondoId = user.condominio_id || null;
+        currentCondoNome = user.condominios?.nome || 'SEM CONDOMÍNIO';
+
+        carregarApp();
+      } catch (err) {
+        console.error(err);
+        alert('Falha no login: ' + err.message);
+      }
+    }
+
+    function carregarApp() {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app-container').style.display = 'grid';
+      document.getElementById('display-user').innerText = `${currentUser.nome} (${currentRole.toUpperCase()})`;
+      document.getElementById('display-condo').innerText =
+        currentRole === 'admin' ? 'VISÃO GLOBAL' : currentCondoNome;
+
+      const adminTools = document.getElementById('admin-tools');
+      const reportWindow = document.getElementById('report-window');
+      const unitTools = document.getElementById('unit-tools');
+      const operatorUserTools = document.getElementById('operator-user-tools');
+      const visitantesCard = document.getElementById('visitantes-card');
+      const rondasCard = document.getElementById('rondas-card');
+
+      if (currentRole === 'admin') {
+        adminTools.classList.remove('hidden');
+        reportWindow.classList.add('hidden');
+        unitTools.classList.remove('hidden');
+        operatorUserTools.classList.add('hidden');
+        visitantesCard.classList.add('hidden');
+        rondasCard.classList.add('hidden');
+      } else {
+        adminTools.classList.add('hidden');
+        reportWindow.classList.remove('hidden');
+        unitTools.classList.add('hidden');
+        operatorUserTools.classList.remove('hidden');
+        visitantesCard.classList.remove('hidden');
+        rondasCard.classList.remove('hidden');
+      }
+
+      iniciarMapa();
+
+      if (currentRole !== 'admin' && map && map.hasLayer(lotesLayer)) {
+        map.removeLayer(lotesLayer);
+      }
+
+      atualizarTudo();
+      iniciarRealtime();
+      iniciarAutoAtualizacao();
+    }
+
+    function iniciarMapa() {
+      if (map) return;
+
+      map = L.map('map', { zoomControl: true }).setView([-23.206558, -47.034927], 18);
+
+      osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 22,
+        attribution: '&copy; OpenStreetMap'
+      });
+
+      sateliteLayer = L.tileLayer(
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        { maxZoom: 22, attribution: 'Tiles &copy; Esri' }
+      );
+
+      claroLayer = L.tileLayer(
+        'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+        { maxZoom: 22, attribution: '&copy; OpenStreetMap &copy; CARTO' }
+      );
+
+      baseLayerAtual = sateliteLayer;
+      baseLayerAtual.addTo(map);
+
+      lotesLayer.addTo(map);
+      visitantesLayer.addTo(map);
+      vigilantesLayer.addTo(map);
+
+      const baseMaps = {
+        "Satélite": sateliteLayer,
+        "Ruas": osmLayer,
+        "Claro": claroLayer
+      };
+
+      const overlayMaps = {
+        "Lotes": lotesLayer,
+        "Visitantes": visitantesLayer,
+        "Rondas": vigilantesLayer
+      };
+
+      L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
+      L.control.scale().addTo(map);
+
+      map.on('click', (e) => {
+        if (currentRole !== 'admin') return;
+        definirPontoSelecionado(e.latlng.lat, e.latlng.lng, true);
+      });
+
+      setTimeout(() => map.invalidateSize(), 300);
+    }
+
+    function definirPontoSelecionado(lat, lng, centralizar = false) {
+      clickCoords = { lat, lng };
+
+      if (tempMarker) map.removeLayer(tempMarker);
+
+      tempMarker = L.marker([lat, lng], { draggable: true }).addTo(map);
+
+      tempMarker.bindPopup(`
+        <b>Ponto selecionado</b><br>
+        Lat: ${lat.toFixed(6)}<br>
+        Lng: ${lng.toFixed(6)}
+      `).openPopup();
+
+      tempMarker.on('dragend', function () {
+        const pos = tempMarker.getLatLng();
+        clickCoords = { lat: pos.lat, lng: pos.lng };
+        atualizarPainelCoordenadas(pos.lat, pos.lng);
+        tempMarker.setPopupContent(`
+          <b>Ponto selecionado</b><br>
+          Lat: ${pos.lat.toFixed(6)}<br>
+          Lng: ${pos.lng.toFixed(6)}
+        `);
+      });
+
+      atualizarPainelCoordenadas(lat, lng);
+
+      if (centralizar) {
+        map.flyTo([lat, lng], Math.max(map.getZoom(), 19), { duration: 0.8 });
+      }
+    }
+
+    function atualizarPainelCoordenadas(lat, lng) {
+      document.getElementById('map-coords').innerHTML = `
+        <b>Ponto selecionado</b><br>
+        Lat: ${lat.toFixed(6)}<br>
+        Lng: ${lng.toFixed(6)}
+      `;
+    }
+
+    function limparPontoSelecionado() {
+      clickCoords = null;
+      if (tempMarker) {
+        map.removeLayer(tempMarker);
+        tempMarker = null;
+      }
+      document.getElementById('map-coords').innerHTML = 'Nenhum ponto selecionado.';
+    }
+
+    function irParaUltimoPonto() {
+      if (!clickCoords) {
+        alert('Nenhum ponto foi selecionado ainda.');
+        return;
+      }
+      map.flyTo([clickCoords.lat, clickCoords.lng], 20, { duration: 0.8 });
+      if (tempMarker) tempMarker.openPopup();
+    }
+
+    function usarMapaSatelite() {
+      if (!map) return;
+      if (map.hasLayer(baseLayerAtual)) map.removeLayer(baseLayerAtual);
+      sateliteLayer.addTo(map);
+      baseLayerAtual = sateliteLayer;
+    }
+
+    function usarMapaRuas() {
+      if (!map) return;
+      if (map.hasLayer(baseLayerAtual)) map.removeLayer(baseLayerAtual);
+      osmLayer.addTo(map);
+      baseLayerAtual = osmLayer;
+    }
+
+    async function buscarEnderecoMapa() {
+      const termo = document.getElementById('map-search').value.trim();
+      if (!termo) {
+        alert('Digite um endereço ou referência.');
+        return;
+      }
+
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q=${encodeURIComponent(termo)}`;
+        const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        const data = await resp.json();
+
+        if (!data || !data.length) {
+          alert('Endereço não encontrado.');
+          return;
+        }
+
+        const item = data[0];
+        const lat = parseFloat(item.lat);
+        const lng = parseFloat(item.lon);
+
+        map.flyTo([lat, lng], 19, { duration: 1 });
+
+        if (currentRole === 'admin') {
+          definirPontoSelecionado(lat, lng, false);
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Erro ao buscar endereço no mapa.');
+      }
+    }
+
+    function iniciarAutoAtualizacao() {
+      if (pollingAtualizacao) {
+        clearInterval(pollingAtualizacao);
+      }
+
+      pollingAtualizacao = setInterval(async () => {
+        if (currentRole === 'admin') return;
+        if (atualizandoAgora) return;
+
+        try {
+          atualizandoAgora = true;
+          await carregarPosicoes();
+          await carregarVisitantes();
+          await carregarRondas();
+          await carregarEstatisticas();
+        } catch (err) {
+          console.error('Erro na autoatualização:', err);
+        } finally {
+          atualizandoAgora = false;
+        }
+      }, 3000);
+    }
+
+    async function atualizarTudo() {
+      if (atualizandoAgora) return;
+
+      try {
+        atualizandoAgora = true;
+
+        await carregarCondominios();
+        await carregarLotes();
+        await carregarPosicoes();
+        await Promise.all([
+          carregarEstatisticas(),
+          carregarVisitantes(),
+          carregarRondas()
+        ]);
+      } finally {
+        atualizandoAgora = false;
+      }
+    }
+
+    async function carregarCondominios() {
+      let query = sb
+        .from('condominios')
+        .select('id, nome, cnpj, chave_acesso, codigo_qr, portaria_latitude, portaria_longitude, created_at')
+        .order('nome', { ascending: true });
+
+      if (currentRole !== 'admin' && currentCondoId) {
+        query = query.eq('id', currentCondoId);
+      }
+
+      const { data, error } = await query;
+      if (error) {
+        showError('Erro ao carregar condomínios.', error);
+        return;
+      }
+
+      condosCache = data || [];
+
+      const selUser = document.getElementById('sel_condo_user');
+      const selMap = document.getElementById('sel_condo_map');
+      const selPortaria = document.getElementById('sel_condo_portaria');
+      const listaAdmin = document.getElementById('lista-admin');
+
+      if (selUser) selUser.innerHTML = '';
+      if (selMap) selMap.innerHTML = '';
+      if (selPortaria) selPortaria.innerHTML = '';
+      if (listaAdmin) listaAdmin.innerHTML = '';
+
+      (data || []).forEach(condo => {
+        if (selUser) selUser.innerHTML += `<option value="${condo.id}">${escapeHtml(condo.nome)}</option>`;
+        if (selMap) selMap.innerHTML += `<option value="${condo.id}">${escapeHtml(condo.nome)}</option>`;
+        if (selPortaria) selPortaria.innerHTML += `<option value="${condo.id}">${escapeHtml(condo.nome)}</option>`;
+
+        if (currentRole === 'admin') {
+          listaAdmin.innerHTML += `
+            <div class="item-lista">
+              <div>
+                <b>${escapeHtml(condo.nome)}</b>
+                <small>CNPJ: ${escapeHtml(condo.cnpj || '-')}</small>
+                <small>Chave: ${escapeHtml(condo.chave_acesso || '-')}</small>
+                <small>QR: ${escapeHtml(condo.codigo_qr || '-')}</small>
+                <small>Portaria: ${formatCoords(condo.portaria_latitude, condo.portaria_longitude)}</small>
+              </div>
+              <div class="actions-inline">
+                <button class="btn-mini" onclick="carregarCondoPortariaNoFormulario('${condo.id}')">Portaria</button>
+                <button class="btn-del" onclick="removerCondominio('${condo.id}')">Excluir</button>
+              </div>
+            </div>
+          `;
+        }
+      });
+
+      if (currentRole === 'admin') preencherPortariaCondo();
+    }
+
+    function preencherPortariaCondo() {
+      const sel = document.getElementById('sel_condo_portaria');
+      if (!sel) return;
+      const condo = condosCache.find(c => c.id === sel.value);
+      document.getElementById('portaria_latitude').value = condo?.portaria_latitude ?? '';
+      document.getElementById('portaria_longitude').value = condo?.portaria_longitude ?? '';
+    }
+
+    function carregarCondoPortariaNoFormulario(condoId) {
+      const sel = document.getElementById('sel_condo_portaria');
+      if (!sel) return;
+      sel.value = condoId;
+      preencherPortariaCondo();
+    }
+
+    function usarPontoSelecionadoComoPortaria() {
+      if (!clickCoords) {
+        alert('Clique no mapa primeiro.');
+        return;
+      }
+      document.getElementById('portaria_latitude').value = clickCoords.lat.toFixed(6);
+      document.getElementById('portaria_longitude').value = clickCoords.lng.toFixed(6);
+    }
+
+    async function salvarPortariaCondo() {
+      if (currentRole !== 'admin') {
+        alert('Somente admin pode salvar a portaria.');
+        return;
+      }
+
+      const condoId = document.getElementById('sel_condo_portaria').value;
+      const lat = parseNumberInput(document.getElementById('portaria_latitude').value);
+      const lng = parseNumberInput(document.getElementById('portaria_longitude').value);
+
+      if (!condoId) {
+        alert('Selecione o condomínio.');
+        return;
+      }
+
+      if (lat == null || lng == null) {
+        alert('Informe latitude e longitude válidas.');
+        return;
+      }
+
+      const { error } = await sb
+        .from('condominios')
+        .update({
+          portaria_latitude: lat,
+          portaria_longitude: lng
+        })
+        .eq('id', condoId);
+
+      if (error) {
+        showError('Erro ao salvar portaria.', error);
+        return;
+      }
+
+      await carregarCondominios();
+      alert('Coordenada da portaria salva com sucesso.');
+    }
+
+    async function salvarCondo() {
+      if (currentRole !== 'admin') {
+        alert('Somente admin pode cadastrar condomínio.');
+        return;
+      }
+
+      const nome = document.getElementById('nome_condo').value.trim().toUpperCase();
+      const cnpj = document.getElementById('cnpj_condo').value.trim();
+      const chave_acesso = document.getElementById('token_condo').value.trim();
+      const codigo_qr = chave_acesso;
+      const portaria_latitude = parseNumberInput(document.getElementById('portaria_lat_novo').value);
+      const portaria_longitude = parseNumberInput(document.getElementById('portaria_lng_novo').value);
+
+      if (!nome || !chave_acesso) {
+        alert('Informe o nome e gere a chave de acesso.');
+        return;
+      }
+
+      const payload = { nome, cnpj, chave_acesso, codigo_qr };
+      if (portaria_latitude != null) payload.portaria_latitude = portaria_latitude;
+      if (portaria_longitude != null) payload.portaria_longitude = portaria_longitude;
+
+      const { error } = await sb.from('condominios').insert([payload]);
+
+      if (error) {
+        showError('Erro ao salvar condomínio.', error);
+        return;
+      }
+
+      document.getElementById('nome_condo').value = '';
+      document.getElementById('cnpj_condo').value = '';
+      document.getElementById('token_condo').value = '';
+      document.getElementById('portaria_lat_novo').value = '';
+      document.getElementById('portaria_lng_novo').value = '';
+
+      await carregarCondominios();
+      alert('Condomínio cadastrado com sucesso.');
+    }
+
+    async function removerCondominio(id) {
+      if (currentRole !== 'admin') return;
+      if (!confirm('Deseja excluir este condomínio?')) return;
+
+      const { error } = await sb.from('condominios').delete().eq('id', id);
+      if (error) {
+        showError('Erro ao excluir condomínio.', error);
+        return;
+      }
+
+      await atualizarTudo();
+    }
+
+    async function salvarUserAdmin() {
+      if (currentRole !== 'admin') return;
+
+      const condominio_id = document.getElementById('sel_condo_user').value;
+      const nome = document.getElementById('new_user_nome').value.trim().toUpperCase();
+      const login = document.getElementById('new_user_login').value.trim().toLowerCase();
+      const senha = document.getElementById('new_user_pass').value.trim();
+
+      if (!condominio_id || !nome || !login || !senha) {
+        alert('Preencha todos os campos do operador.');
+        return;
+      }
+
+      await salvarUsuarioGenerico({ condominio_id, nome, login, senha });
+
+      document.getElementById('new_user_nome').value = '';
+      document.getElementById('new_user_login').value = '';
+      document.getElementById('new_user_pass').value = '';
+    }
+
+    async function salvarUserOperador() {
+      if (currentRole === 'admin') return;
+
+      const nome = document.getElementById('op_user_nome').value.trim().toUpperCase();
+      const login = document.getElementById('op_user_login').value.trim().toLowerCase();
+      const senha = document.getElementById('op_user_pass').value.trim();
+
+      if (!currentCondoId) {
+        alert('Este operador não possui condomínio vinculado.');
+        return;
+      }
+
+      if (!nome || !login || !senha) {
+        alert('Preencha todos os campos do usuário.');
+        return;
+      }
+
+      await salvarUsuarioGenerico({
+        condominio_id: currentCondoId,
+        nome,
+        login,
+        senha
+      });
+
+      document.getElementById('op_user_nome').value = '';
+      document.getElementById('op_user_login').value = '';
+      document.getElementById('op_user_pass').value = '';
+    }
+
+    async function salvarUsuarioGenerico({ condominio_id, nome, login, senha }) {
+      try {
+        const { data: existente, error: erroBusca } = await sb
+          .from('usuarios')
+          .select('id')
+          .eq('login', login)
+          .limit(1);
+
+        if (erroBusca) {
+          alert('Erro ao validar login: ' + erroBusca.message);
+          return;
+        }
+
+        if (existente && existente.length > 0) {
+          alert('Já existe um usuário com esse login.');
+          return;
+        }
+
+        const { error } = await sb
+          .from('usuarios')
+          .insert([{
+            condominio_id,
+            nome,
+            login,
+            senha,
+            tipo: 'operador',
+            ativo: true
+          }]);
+
+        if (error) {
+          alert('Erro ao criar usuário: ' + error.message);
+          return;
+        }
+
+        alert('Usuário criado com sucesso.');
+      } catch (err) {
+        console.error(err);
+        alert('Falha ao salvar usuário: ' + err.message);
+      }
+    }
+
+    async function salvarLote() {
+      if (currentRole !== 'admin') {
+        alert('Somente admin pode cadastrar unidades.');
+        return;
+      }
+
+      const condominio_id = document.getElementById('sel_condo_map').value;
+      const rua = document.getElementById('rua').value.trim().toUpperCase();
+      const numero = document.getElementById('numero').value.trim();
+      const quadra = document.getElementById('qd').value.trim().toUpperCase();
+      const lote = document.getElementById('lt').value.trim().toUpperCase();
+
+      if (!condominio_id) {
+        alert('Selecione o condomínio.');
+        return;
+      }
+
+      if (!clickCoords) {
+        alert('Clique no mapa primeiro ou busque um endereço.');
+        return;
+      }
+
+      const { error } = await sb
+        .from('lotes')
+        .insert([{
+          condominio_id,
+          rua,
+          numero,
+          quadra,
+          lote,
+          latitude: clickCoords.lat,
+          longitude: clickCoords.lng,
+          created_by: currentUser?.id || null
+        }]);
+
+      if (error) {
+        showError('Erro ao salvar lote.', error);
+        return;
+      }
+
+      document.getElementById('rua').value = '';
+      document.getElementById('numero').value = '';
+      document.getElementById('qd').value = '';
+      document.getElementById('lt').value = '';
+      document.getElementById('map-search').value = '';
+
+      limparPontoSelecionado();
+      await carregarLotes();
+      await carregarEstatisticas();
+      alert('Unidade fixada no mapa.');
+    }
+
+    async function carregarLotes() {
+      let query = sb
+        .from('lotes')
+        .select(`
+          id,
+          condominio_id,
+          rua,
+          numero,
+          quadra,
+          lote,
+          latitude,
+          longitude,
+          condominios (
+            nome
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      const condoFilterId = getCondoFilterId();
+      if (condoFilterId) query = query.eq('condominio_id', condoFilterId);
+
+      const { data, error } = await query;
+      if (error) {
+        showError('Erro ao carregar lotes.', error);
+        return;
+      }
+
+      document.getElementById('count-lotes').innerText = (data || []).length;
+      lotesLayer.clearLayers();
+
+      if (currentRole !== 'admin') return;
+
+      (data || []).forEach(item => {
+        if (item.latitude == null || item.longitude == null) return;
+
+        let info = `<b>${escapeHtml(item.condominios?.nome || '')}</b><br>`;
+        info += `${escapeHtml(item.rua || '')}`;
+        if (item.numero) info += ` Nº ${escapeHtml(item.numero)}`;
+        if (item.quadra || item.lote) {
+          info += `<br>QD ${escapeHtml(item.quadra || '-')} LT ${escapeHtml(item.lote || '-')}`;
+        }
+
+        L.marker([item.latitude, item.longitude]).addTo(lotesLayer).bindPopup(info);
+      });
+    }
+
+    async function carregarPosicoes() {
+      let query = sb
+        .from('posicoes_tempo_real')
+        .select(`
+          id,
+          condominio_id,
+          tipo_entidade,
+          entidade_id,
+          latitude,
+          longitude,
+          precisao,
+          velocidade,
+          bateria,
+          created_at
+        `)
+        .order('created_at', { ascending: false })
+        .limit(6000);
+
+      const condoFilterId = getCondoFilterId();
+      if (condoFilterId) query = query.eq('condominio_id', condoFilterId);
+
+      const { data, error } = await query;
+      if (error) {
+        showError('Erro ao carregar posições.', error);
+        return;
+      }
+
+      visitantesLayer.clearLayers();
+      vigilantesLayer.clearLayers();
+      latestVisitorPositions = new Map();
+      recentVisitorTracks = new Map();
+
+      const latestByEntity = new Map();
+
+      (data || []).forEach(item => {
+        const key = `${item.tipo_entidade}_${item.entidade_id}`;
+        if (!latestByEntity.has(key)) latestByEntity.set(key, item);
+
+        if (item.tipo_entidade === 'visitante') {
+          if (!recentVisitorTracks.has(item.entidade_id)) {
+            recentVisitorTracks.set(item.entidade_id, []);
+          }
+          recentVisitorTracks.get(item.entidade_id).push(item);
+        }
+      });
+
+      recentVisitorTracks.forEach((list, key) => {
+        list.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        if (list.length > 150) {
+          recentVisitorTracks.set(key, list.slice(list.length - 150));
+        }
+      });
+
+      let visitantesAtivos = 0;
+      let vigilantesAtivos = 0;
+
+      latestByEntity.forEach(item => {
+        const popup = `
+          <b>${item.tipo_entidade.toUpperCase()}</b><br>
+          ID: ${escapeHtml(item.entidade_id)}<br>
+          Lat: ${Number(item.latitude).toFixed(6)}<br>
+          Lng: ${Number(item.longitude).toFixed(6)}<br>
+          Precisão: ${escapeHtml(item.precisao ?? '-')}<br>
+          Velocidade: ${escapeHtml(item.velocidade ?? '-')} km/h<br>
+          Última atualização: ${formatDateTime(item.created_at)}
+        `;
+
+        if (item.tipo_entidade === 'visitante') {
+          visitantesAtivos++;
+          latestVisitorPositions.set(item.entidade_id, item);
+
+          L.circleMarker([item.latitude, item.longitude], {
+            radius: 8,
+            color: '#3b82f6',
+            fillColor: '#3b82f6',
+            fillOpacity: 0.85
+          }).addTo(visitantesLayer).bindPopup(popup);
+        } else if (item.tipo_entidade === 'vigilante') {
+          vigilantesAtivos++;
+          L.circleMarker([item.latitude, item.longitude], {
+            radius: 8,
+            color: '#10b981',
+            fillColor: '#10b981',
+            fillOpacity: 0.85
+          }).addTo(vigilantesLayer).bindPopup(popup);
+        }
+      });
+
+     document.getElementById('count-rondas').innerText = vigilantesAtivos;
+    }
+
+   async function carregarEstatisticas() {
+  const condoFilterId = getCondoFilterId();
+
+  let visitasQuery = sb
+    .from('visitas')
+    .select('id', { count: 'exact', head: true })
+    .in('status', ['aguardando', 'em_rota', 'chegou', 'desvio'])
+    .eq('oculto_operador', false);
+
+  let lotesQuery = sb
+    .from('lotes')
+    .select('id', { count: 'exact', head: true });
+
+  if (condoFilterId) {
+    visitasQuery = visitasQuery.eq('condominio_id', condoFilterId);
+    lotesQuery = lotesQuery.eq('condominio_id', condoFilterId);
+  }
+
+  const [visitasRes, lotesRes] = await Promise.all([
+    visitasQuery,
+    lotesQuery
+  ]);
+
+  document.getElementById('count-visitantes').innerText = visitasRes.count ?? 0;
+  document.getElementById('count-lotes').innerText = lotesRes.count ?? 0;
+}
+
+    function getPosicaoVisitantePainel(visitId) {
+      const posRealtime = latestVisitorPositions.get(visitId);
+      const visit = latestVisitsById.get(visitId);
+
+      if (posRealtime) {
+        return {
+          ...posRealtime,
+          origem: 'tempo_real'
+        };
+      }
+
+      if (!visit) return null;
+      if (visit.latitude_atual == null || visit.longitude_atual == null) return null;
+
+      return {
+        id: `fallback_${visit.id}`,
+        entidade_id: visit.id,
+        latitude: Number(visit.latitude_atual),
+        longitude: Number(visit.longitude_atual),
+        precisao: null,
+        velocidade: 0,
+        bateria: null,
+        created_at: visit.updated_at || visit.created_at || new Date().toISOString(),
+        origem: 'visita'
+      };
+    }
+
+    function calcularAlertaParado(visitId, status) {
+      if (!['em_rota', 'desvio', 'chegou'].includes(status || '')) {
+        return { active: false, seconds: 0 };
+      }
+
+      const posAtual = getPosicaoVisitantePainel(visitId);
+      if (!posAtual || !posAtual.created_at) {
+        return { active: false, seconds: 0 };
+      }
+
+      const agoraMs = Date.now();
+      const ultimoMs = new Date(posAtual.created_at).getTime();
+
+      if (!Number.isFinite(ultimoMs)) {
+        return { active: false, seconds: 0 };
+      }
+
+      const segundosSemAtualizacao = Math.floor((agoraMs - ultimoMs) / 1000);
+      const tracks = recentVisitorTracks.get(visitId) || [];
+
+      if (tracks.length >= 2) {
+        const ordered = [...tracks].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        const latest = ordered[ordered.length - 1];
+        const latestTime = new Date(latest.created_at).getTime();
+
+        const janela = ordered.filter(p => {
+          const diffSec = Math.floor((latestTime - new Date(p.created_at).getTime()) / 1000);
+          return diffSec <= LIMITE_PARADO_SEG;
+        });
+
+        if (janela.length >= 2) {
+          const first = janela[0];
+          const durationSec = Math.floor((latestTime - new Date(first.created_at).getTime()) / 1000);
+
+          let maxDist = 0;
+          let maxVel = 0;
+
+          for (const p of janela) {
+            const dist = distanceMeters(
+              Number(first.latitude),
+              Number(first.longitude),
+              Number(p.latitude),
+              Number(p.longitude)
+            );
+            if (dist > maxDist) maxDist = dist;
+
+            const vel = Number(p.velocidade || 0);
+            if (vel > maxVel) maxVel = vel;
+          }
+
+          const paradoPorDistancia = maxDist <= LIMITE_DIST_PARADO_METROS;
+          const paradoPorVelocidade = maxVel <= 3;
+
+          if (paradoPorDistancia && paradoPorVelocidade && durationSec >= LIMITE_PARADO_SEG) {
+            return {
+              active: true,
+              seconds: durationSec
+            };
+          }
+        }
+      }
+
+      const velocidadeAtual = Number(posAtual.velocidade || 0);
+
+      return {
+        active: segundosSemAtualizacao >= LIMITE_PARADO_SEG && velocidadeAtual <= 3,
+        seconds: segundosSemAtualizacao
+      };
+    }
+
+    async function carregarVisitantes() {
+      if (currentRole === 'admin') return;
+
+      let visitsQuery = sb
+        .from('visitas')
+        .select(`
+          id,
+          condominio_id,
+          nome_visitante,
+          placa,
+          destino_texto,
+          status,
+          autorizado_por,
+          created_at,
+          updated_at,
+          latitude_atual,
+          longitude_atual,
+          oculto_operador
+        `)
+        .eq('oculto_operador', false)
+        .order('created_at', { ascending: false })
+        .limit(120);
+
+      let eventsQuery = sb
+        .from('eventos_operacionais')
+        .select('id, origem_id, tipo_evento, titulo, prioridade, created_at')
+        .eq('tipo_origem', 'visitante')
+        .order('created_at', { ascending: false })
+        .limit(1000);
+
+      if (currentCondoId) {
+        visitsQuery = visitsQuery.eq('condominio_id', currentCondoId);
+        eventsQuery = eventsQuery.eq('condominio_id', currentCondoId);
+      }
+
+      const [{ data: visits, error }, { data: events, error: eventsError }] = await Promise.all([
+        visitsQuery,
+        eventsQuery
+      ]);
+
+      const lista = document.getElementById('lista-visitantes');
+      if (error || eventsError) {
+        lista.innerHTML = `<div class="muted">Erro ao carregar visitantes.</div>`;
+        return;
+      }
+
+      lista.innerHTML = '';
+      latestVisitsById = new Map();
+      latestVisitorAlerts = new Map();
+
+      const eventsByVisitId = new Map();
+      (events || []).forEach(ev => {
+        if (!ev.origem_id) return;
+        if (!eventsByVisitId.has(ev.origem_id)) eventsByVisitId.set(ev.origem_id, []);
+        eventsByVisitId.get(ev.origem_id).push(ev);
+      });
+
+      if (!(visits || []).length) {
+        lista.innerHTML = `<div class="muted">Nenhum visitante encontrado.</div>`;
+        return;
+      }
+
+      let totalAlertas = 0;
+
+      (visits || []).forEach(item => {
+        latestVisitsById.set(item.id, item);
+
+        const pos = getPosicaoVisitantePainel(item.id);
+        const visitEvents = eventsByVisitId.get(item.id) || [];
+
+        const hasSpeed = !!(
+          (pos?.velocidade != null && Number(pos.velocidade) > LIMITE_VELOCIDADE_KMH) ||
+          visitEvents.some(ev => ev.tipo_evento === 'excesso_velocidade')
+        );
+
+        const hasDeviation = !!(
+          item.status === 'desvio' ||
+          visitEvents.some(ev => ev.tipo_evento === 'desvio_rota')
+        );
+
+        const stopped = calcularAlertaParado(item.id, item.status);
+        const hasStopped = stopped.active;
+
+        const alertList = [];
+        if (hasDeviation) alertList.push('SAIU DA ROTA');
+        if (hasSpeed) alertList.push('ACIMA DE 30 KM/H');
+        if (hasStopped) alertList.push(`PARADO HÁ ${stopped.seconds}s`);
+
+        const alertLevel = hasDeviation || hasSpeed ? 'danger' : (hasStopped ? 'warning' : 'normal');
+        totalAlertas += alertList.length;
+
+        latestVisitorAlerts.set(item.id, {
+          deviation: hasDeviation,
+          speed: hasSpeed,
+          stopped: hasStopped,
+          stoppedSeconds: stopped.seconds,
+          level: alertLevel
+        });
+
+        const itemClass =
+          alertLevel === 'danger' ? 'item-lista alerta' :
+          alertLevel === 'warning' ? 'item-lista warning' :
+          'item-lista';
+
+        const locationText = pos
+          ? `Lat: ${Number(pos.latitude).toFixed(6)} | Lng: ${Number(pos.longitude).toFixed(6)}`
+          : 'Sem posição recente';
+
+        const badges = [
+          hasDeviation ? `<span class="alert-badge badge-danger">SAIU DA ROTA</span>` : '',
+          hasSpeed ? `<span class="alert-badge badge-danger">VELOCIDADE</span>` : '',
+          hasStopped ? `<span class="alert-badge badge-warning">PARADO</span>` : '',
+          !alertList.length ? `<span class="alert-badge badge-success">NORMAL</span>` : ''
+        ].join('');
+
+        lista.innerHTML += `
+          <div class="${itemClass}">
+            <div>
+              <button class="btn-link" onclick="localizarVisitante('${item.id}')">${escapeHtml(item.nome_visitante || 'Sem nome')}</button>
+              <small>Status: ${escapeHtml(item.status || '-')}</small>
+              <small>Placa: ${escapeHtml(item.placa || '-')}</small>
+              <small>Destino: ${escapeHtml(item.destino_texto || '-')}</small>
+              <small>Liberado por: ${escapeHtml(item.autorizado_por || '-')}</small>
+              <small>Posição exata: ${escapeHtml(locationText)}</small>
+              <small>Atualizado em: ${pos ? formatDateTime(pos.created_at) : '-'}</small>
+              ${badges}
+            </div>
+            <div class="actions-inline">
+              <button class="btn-mini" onclick="localizarVisitante('${item.id}')">Ver Local</button>
+              <button class="btn-mini" onclick="editarVisitante('${item.id}')">Editar</button>
+              <button class="btn-del" onclick="excluirVisitante('${item.id}')">Excluir</button>
+            </div>
+          </div>
+        `;
+	document.getElementById('count-alertas').innerText = totalAlertas;
+      });
+
+      document.getElementById('count-alertas').innerText = totalAlertas;
+
+      if (totalAlertas > ultimoTotalAlertasOperador) {
+        dispararBeepAlerta();
+      }
+      ultimoTotalAlertasOperador = totalAlertas;
+    }
+
+    function localizarVisitante(visitId) {
+      const pos = getPosicaoVisitantePainel(visitId);
+      const visit = latestVisitsById.get(visitId);
+      const visitorAlerts = latestVisitorAlerts.get(visitId);
+
+      if (!pos) {
+        alert('Este visitante não possui posição conhecida.');
+        return;
+      }
+
+      if (destaqueVisitorMarker) {
+        map.removeLayer(destaqueVisitorMarker);
+      }
+
+      destaqueVisitorMarker = L.circleMarker([pos.latitude, pos.longitude], {
+        radius: 12,
+        color: '#f59e0b',
+        fillColor: '#f59e0b',
+        fillOpacity: 0.35,
+        weight: 3
+      }).addTo(map);
+
+      const alertasTexto = [];
+      if (visitorAlerts?.deviation) alertasTexto.push('Saiu da rota');
+      if (visitorAlerts?.speed) alertasTexto.push('Acima de 30 km/h');
+      if (visitorAlerts?.stopped) alertasTexto.push(`Parado há ${visitorAlerts.stoppedSeconds}s`);
+
+      destaqueVisitorMarker.bindPopup(`
+        <b>${escapeHtml(visit?.nome_visitante || 'Visitante')}</b><br>
+        Placa: ${escapeHtml(visit?.placa || '-')}<br>
+        Status: ${escapeHtml(visit?.status || '-')}<br>
+        Lat: ${Number(pos.latitude).toFixed(6)}<br>
+        Lng: ${Number(pos.longitude).toFixed(6)}<br>
+        Precisão: ${escapeHtml(pos.precisao ?? '-')}<br>
+        Velocidade: ${escapeHtml(pos.velocidade ?? '-')} km/h<br>
+        Atualizado em: ${formatDateTime(pos.created_at)}<br>
+        Origem da posição: ${escapeHtml(pos.origem || 'desconhecida')}<br>
+        Alertas: ${escapeHtml(alertasTexto.join(' | ') || 'Nenhum')}
+      `).openPopup();
+
+      map.flyTo([pos.latitude, pos.longitude], 20, { duration: 0.8 });
+    }
+
+    async function editarVisitante(id) {
+      const { data, error } = await sb.from('visitas').select('*').eq('id', id).single();
+
+      if (error || !data) {
+        alert('Erro ao carregar visitante.');
+        return;
+      }
+
+      const nome_visitante = prompt('Nome do visitante:', data.nome_visitante || '');
+      if (nome_visitante === null) return;
+
+      const placa = prompt('Placa:', data.placa || '');
+      if (placa === null) return;
+
+      const destino_texto = prompt('Destino:', data.destino_texto || '');
+      if (destino_texto === null) return;
+
+      const autorizado_por = prompt('Liberado por:', data.autorizado_por || '');
+      if (autorizado_por === null) return;
+
+      const status = prompt('Status (aguardando, em_rota, chegou, desvio, finalizada, cancelada):', data.status || 'aguardando');
+      if (status === null) return;
+
+      const { error: updateError } = await sb
+        .from('visitas')
+        .update({
+          nome_visitante,
+          placa,
+          destino_texto,
+          autorizado_por,
+          status,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      if (updateError) {
+        alert('Erro ao editar visitante: ' + updateError.message);
+        return;
+      }
+
+      await carregarVisitantes();
+      await carregarEstatisticas();
+      alert('Visitante atualizado com sucesso.');
+    }
+
+    async function excluirVisitante(id) {
+      if (!confirm('Deseja remover este visitante do painel? O registro continuará salvo para relatórios.')) return;
+
+      const { error } = await sb
+        .from('visitas')
+        .update({
+          oculto_operador: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      if (error) {
+        alert('Erro ao remover visitante do painel: ' + error.message);
+        return;
+      }
+
+      await carregarVisitantes();
+      await carregarEstatisticas();
+      alert('Visitante removido do painel, mas mantido no histórico.');
+    }
+
+    async function carregarRondas() {
+      if (currentRole === 'admin') return;
+
+      let query = sb
+        .from('posicoes_tempo_real')
+        .select(`
+          id,
+          entidade_id,
+          latitude,
+          longitude,
+          precisao,
+          velocidade,
+          bateria,
+          created_at
+        `)
+        .eq('tipo_entidade', 'vigilante')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (currentCondoId) query = query.eq('condominio_id', currentCondoId);
+
+      const { data, error } = await query;
+      const lista = document.getElementById('lista-rondas');
+
+      if (error) {
+        lista.innerHTML = `<div class="muted">Erro ao carregar rondas.</div>`;
+        return;
+      }
+
+      lista.innerHTML = '';
+
+      if (!data.length) {
+        lista.innerHTML = `<div class="muted">Nenhuma ronda encontrada.</div>`;
+        return;
+      }
+
+      (data || []).forEach(item => {
+        lista.innerHTML += `
+          <div class="item-lista">
+            <div>
+              <b>Ronda / Vigilante</b>
+              <small>ID entidade: ${escapeHtml(item.entidade_id || '-')}</small>
+              <small>Lat: ${Number(item.latitude).toFixed(6)} | Lng: ${Number(item.longitude).toFixed(6)}</small>
+              <small>Precisão: ${escapeHtml(item.precisao ?? '-')}</small>
+              <small>Velocidade: ${escapeHtml(item.velocidade ?? '-')} km/h</small>
+              <small>Bateria: ${escapeHtml(item.bateria ?? '-')}</small>
+              <small>Atualizado em: ${formatDateTime(item.created_at)}</small>
+            </div>
+            <div class="actions-inline">
+              <button class="btn-del" onclick="excluirRonda('${item.id}')">Excluir</button>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    async function excluirRonda(id) {
+      if (!confirm('Deseja excluir este registro de ronda?')) return;
+
+      const { error } = await sb.from('posicoes_tempo_real').delete().eq('id', id);
+      if (error) {
+        alert('Erro ao excluir ronda: ' + error.message);
+        return;
+      }
+
+      await carregarRondas();
+      await carregarPosicoes();
+      alert('Ronda excluída com sucesso.');
+    }
+
+    function addHeaderToPdf(doc, title) {
+      doc.setFontSize(16);
+      doc.text(title, 14, 16);
+      doc.setFontSize(10);
+      doc.text(`Usuário: ${currentUser?.nome || '-'}`, 14, 24);
+      doc.text(`Condomínio: ${currentCondoNome || '-'}`, 14, 30);
+      doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, 36);
+    }
+
+    async function gerarRelatorioPDF() {
+      if (currentRole === 'admin') {
+        alert('Este relatório está disponível apenas para usuário operador.');
+        return;
+      }
+
+      try {
+        const condoId = currentCondoId;
+
+        let visitasQuery = sb
+          .from('visitas')
+          .select(`
+            id,
+            nome_visitante,
+            placa,
+            destino_texto,
+            status,
+            horario_entrada_sistema,
+            horario_saida_portaria,
+            created_at
+          `)
+          .order('created_at', { ascending: false });
+
+        let posicoesQuery = sb
+          .from('posicoes_tempo_real')
+          .select(`
+            entidade_id,
+            latitude,
+            longitude,
+            velocidade,
+            created_at
+          `)
+          .eq('tipo_entidade', 'visitante')
+          .order('created_at', { ascending: false })
+          .limit(8000);
+
+        let eventosQuery = sb
+          .from('eventos_operacionais')
+          .select(`
+            origem_id,
+            tipo_evento,
+            created_at
+          `)
+          .eq('tipo_origem', 'visitante')
+          .order('created_at', { ascending: false })
+          .limit(8000);
+
+        if (condoId) {
+          visitasQuery = visitasQuery.eq('condominio_id', condoId);
+          posicoesQuery = posicoesQuery.eq('condominio_id', condoId);
+          eventosQuery = eventosQuery.eq('condominio_id', condoId);
+        }
+
+        const [
+          { data: visitas, error: visitasError },
+          { data: posicoes, error: posicoesError },
+          { data: eventos, error: eventosError }
+        ] = await Promise.all([visitasQuery, posicoesQuery, eventosQuery]);
+
+        if (visitasError || posicoesError || eventosError) {
+          alert('Erro ao gerar relatório.');
+          console.error(visitasError, posicoesError, eventosError);
+          return;
+        }
+
+        const tracksByVisit = new Map();
+        const latestPosByVisit = new Map();
+        const eventsByVisit = new Map();
+
+        (posicoes || []).forEach(pos => {
+          if (!tracksByVisit.has(pos.entidade_id)) {
+            tracksByVisit.set(pos.entidade_id, []);
+          }
+          tracksByVisit.get(pos.entidade_id).push(pos);
+
+          if (!latestPosByVisit.has(pos.entidade_id)) {
+            latestPosByVisit.set(pos.entidade_id, pos);
+          }
+        });
+
+        tracksByVisit.forEach((list, key) => {
+          list.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+          if (list.length > 150) {
+            tracksByVisit.set(key, list.slice(list.length - 150));
+          }
+        });
+
+        (eventos || []).forEach(ev => {
+          if (!ev.origem_id) return;
+          if (!eventsByVisit.has(ev.origem_id)) eventsByVisit.set(ev.origem_id, []);
+          eventsByVisit.get(ev.origem_id).push(ev);
+        });
+
+        function calcularParado(visitId, status) {
+  if (!['em_rota', 'desvio', 'chegou'].includes(status || '')) return 'NÃO';
+
+  const tracks = tracksByVisit.get(visitId) || [];
+  const visita = (visitas || []).find(v => v.id === visitId);
+
+  const latest = latestPosByVisit.get(visitId) || (
+    visita && visita.latitude_atual != null && visita.longitude_atual != null
+      ? {
+          latitude: Number(visita.latitude_atual),
+          longitude: Number(visita.longitude_atual),
+          velocidade: 0,
+          created_at: visita.updated_at || visita.created_at
+        }
+      : null
+  );
+
+  if (!latest || !latest.created_at) return 'NÃO';
+
+  const agoraMs = Date.now();
+  const ultimoMs = new Date(latest.created_at).getTime();
+  if (!Number.isFinite(ultimoMs)) return 'NÃO';
+
+  const segundosSemAtualizacao = Math.floor((agoraMs - ultimoMs) / 1000);
+
+  if (tracks.length >= 2) {
+    const ordered = [...tracks].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    const latestTrack = ordered[ordered.length - 1];
+    const latestTime = new Date(latestTrack.created_at).getTime();
+
+    const janela = ordered.filter(p => {
+      const diffSec = Math.floor((latestTime - new Date(p.created_at).getTime()) / 1000);
+      return diffSec <= LIMITE_PARADO_SEG;
+    });
+
+    if (janela.length >= 2) {
+      const first = janela[0];
+      const durationSec = Math.floor((latestTime - new Date(first.created_at).getTime()) / 1000);
+
+      let maxDist = 0;
+      let maxVel = 0;
+
+      for (const p of janela) {
+        const dist = distanceMeters(
+          Number(first.latitude),
+          Number(first.longitude),
+          Number(p.latitude),
+          Number(p.longitude)
+        );
+        if (dist > maxDist) maxDist = dist;
+
+        const vel = Number(p.velocidade || 0);
+        if (vel > maxVel) maxVel = vel;
+      }
+
+      if (maxDist <= LIMITE_DIST_PARADO_METROS && maxVel <= 3 && durationSec >= LIMITE_PARADO_SEG) {
+        return 'SIM';
+      }
+    }
+  }
+
+  return (segundosSemAtualizacao >= LIMITE_PARADO_SEG && Number(latest.velocidade || 0) <= 3) ? 'SIM' : 'NÃO';
+}
+
+        function calcularStatusVelocidade(visitId) {
+          const latest = latestPosByVisit.get(visitId);
+          if (!latest || latest.velocidade == null) return 'SEM DADO';
+
+          const velocidade = Number(latest.velocidade);
+          return velocidade > LIMITE_VELOCIDADE_KMH
+            ? `ACIMA DO LIMITE (${velocidade.toFixed(1)} km/h)`
+            : `NORMAL (${velocidade.toFixed(1)} km/h)`;
+        }
+
+        function calcularSaiuDaRota(visitId, status) {
+          const visitEvents = eventsByVisit.get(visitId) || [];
+          const hasDeviation = status === 'desvio' || visitEvents.some(ev => ev.tipo_evento === 'desvio_rota');
+          return hasDeviation ? 'SIM' : 'NÃO';
+        }
+
+        function calcularInfracoes(visitId, status) {
+          const latest = latestPosByVisit.get(visitId);
+          const visitEvents = eventsByVisit.get(visitId) || [];
+
+          const hasSpeed = !!(
+            (latest?.velocidade != null && Number(latest.velocidade) > LIMITE_VELOCIDADE_KMH) ||
+            visitEvents.some(ev => ev.tipo_evento === 'excesso_velocidade')
+          );
+
+          const hasDeviation = status === 'desvio' || visitEvents.some(ev => ev.tipo_evento === 'desvio_rota');
+
+          const infra = [];
+          if (hasDeviation) infra.push('SAIU DA ROTA');
+          if (hasSpeed) infra.push('EXCESSO DE VELOCIDADE');
+
+          return infra.length ? infra.join(' / ') : 'NENHUMA';
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'landscape' });
+
+        addHeaderToPdf(doc, 'Relatório Geral de Auditoria');
+
+        doc.autoTable({
+          startY: 42,
+          head: [[
+            'Nome',
+            'Placa',
+            'Destino',
+            'Status',
+            'Status Velocidade',
+            'Ficou Parado',
+            'Saiu da Rota',
+            'Entrada',
+            'Saída Portaria',
+            'Infrações'
+          ]],
+          body: (visitas || []).map(v => [
+            v.nome_visitante || '',
+            v.placa || '',
+            v.destino_texto || '',
+            v.status || '',
+            calcularStatusVelocidade(v.id),
+            calcularParado(v.id, v.status),
+            calcularSaiuDaRota(v.id, v.status),
+            formatDateTime(v.horario_entrada_sistema || v.created_at),
+            formatDateTime(v.horario_saida_portaria),
+            calcularInfracoes(v.id, v.status)
+          ]),
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [30, 41, 59] }
+        });
+
+        doc.save(`relatorio_auditoria_${new Date().toISOString().slice(0, 10)}.pdf`);
+      } catch (err) {
+        console.error(err);
+        alert('Falha ao gerar relatório PDF: ' + err.message);
+      }
+    }
+
+    function iniciarRealtime() {
+      if (realtimeChannel) {
+        sb.removeChannel(realtimeChannel);
+      }
+
+      realtimeChannel = sb
+        .channel('zayron-monitoramento')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'lotes' },
+          async () => {
+            await carregarLotes();
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'posicoes_tempo_real' },
+          async () => {
+            if (atualizandoAgora) return;
+            try {
+              atualizandoAgora = true;
+              await carregarPosicoes();
+              await carregarRondas();
+              await carregarVisitantes();
+              await carregarEstatisticas();
+            } finally {
+              atualizandoAgora = false;
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'eventos_operacionais' },
+          async () => {
+            if (atualizandoAgora) return;
+            try {
+              atualizandoAgora = true;
+              await carregarEstatisticas();
+              await carregarVisitantes();
+            } finally {
+              atualizandoAgora = false;
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'visitas' },
+          async () => {
+            if (atualizandoAgora) return;
+            try {
+              atualizandoAgora = true;
+              await carregarEstatisticas();
+              await carregarVisitantes();
+              await carregarPosicoes();
+            } finally {
+              atualizandoAgora = false;
+            }
+          }
+        )
+        .subscribe((status) => {
+          console.log('Realtime:', status);
+          if (status === 'SUBSCRIBED') {
+            atualizarTudo();
+          }
+        });
+    }
+  </script>
+</body>
+</html>
